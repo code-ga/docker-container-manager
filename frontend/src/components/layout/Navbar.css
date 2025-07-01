@@ -1,0 +1,76 @@
+.navbar-anime {
+  padding: 1rem 2.5rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(90deg, #a78bfa 0%, #f472b6 100%);
+  border-radius: 1.5rem;
+  box-shadow: 0 6px 24px 0 rgba(168, 139, 250, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: box-shadow 0.3s, background 0.3s;
+}
+.navbar-anime:hover {
+  box-shadow: 0 10px 32px 0 rgba(244, 114, 182, 0.5);
+  background: linear-gradient(90deg, #f472b6 0%, #a78bfa 100%);
+}
+.font-anime {
+  font-family: "Zen Dots", "Orbitron", cursive;
+}
+.drop-shadow-anime {
+  filter: drop-shadow(0 2px 8px #a78bfa);
+}
+.navbar-link-anime {
+  color: #fff;
+  font-weight: bold;
+  margin: 0 1.2rem;
+  padding: 0.5rem 1.2rem;
+  border-radius: 0.8rem;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+  box-shadow: 0 2px 8px 0 rgba(244, 114, 182, 0.15);
+}
+.navbar-link-anime:hover {
+  background: #fff;
+  color: #a78bfa;
+  transform: scale(1.08) rotate(-2deg);
+}
+.shadow-anime {
+  box-shadow: 0 4px 20px 0 rgba(168, 139, 250, 0.3);
+}
+.animate-navbar-fade {
+  animation: navbarFadeIn 1s ease;
+}
+.animate-logo-bounce {
+  animation: logoBounce 2s infinite alternate;
+}
+.animate-pop {
+  animation: popIn 0.5s;
+}
+@keyframes navbarFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes logoBounce {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-8px) scale(1.08);
+  }
+}
+@keyframes popIn {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
