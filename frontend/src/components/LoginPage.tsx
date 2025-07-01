@@ -24,8 +24,8 @@ const AnimeBackground = () => (
   </svg>
 );
 const callbackURL = import.meta.env.DEV
-  ? "http://localhost:5173/"
-  : "https://self-hosted-forum.vercel.app/";
+  ? "http://localhost:5173/dashboard"
+  : "https://self-hosted-forum.vercel.app/dashboard";
 const LoginPage: React.FC = () => {
   const { data: session } = useSession();
 
@@ -226,6 +226,13 @@ const LoginPage: React.FC = () => {
               </div>
               <form
                 style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const email = (e.currentTarget[0] as HTMLInputElement).value;
+                  const password = (e.currentTarget[1] as HTMLInputElement)
+                    .value;
+                  await signIn.email({ email, password, callbackURL });
+                }}
               >
                 <input
                   type="email"
