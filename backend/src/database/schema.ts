@@ -1,13 +1,11 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
-  jsonb,
   pgTable,
   text,
   timestamp
 } from 'drizzle-orm/pg-core';
 
-import { createId } from '@paralleldrive/cuid2';
 
 
 export const user = pgTable("user", {
@@ -17,6 +15,7 @@ export const user = pgTable("user", {
   emailVerified: boolean('email_verified').notNull(),
   image: text('image'),
   postIds: text('post_ids').notNull().array().default([]),
+  permission: text('permission').notNull().array().default(sql`ARRAY[]::text[]`),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull()
 });

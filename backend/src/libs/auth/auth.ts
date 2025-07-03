@@ -52,5 +52,15 @@ export const auth = betterAuth({
   },
   plugins: [
     openAPI(),
-  ]
+  ],
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          // Modify user data before creation
+          return { data: { ...user, permission: ["user"] } };
+        }
+      },
+    }
+  }
 });

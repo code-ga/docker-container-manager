@@ -1,5 +1,6 @@
 import { useSession, signIn, signOut } from "@/lib/auth";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Example anime background SVG (could be replaced with an image or more complex SVG)
 const AnimeBackground = () => (
@@ -28,6 +29,19 @@ const callbackURL = import.meta.env.DEV
   : "https://self-hosted-forum.vercel.app/dashboard";
 const LoginPage: React.FC = () => {
   const { data: session } = useSession();
+  const navigate = useNavigate();
+  const [redirecting, setRedirecting] = useState(false);
+
+  useEffect(() => {
+    if (session) {
+      setRedirecting(true);
+      const timer = setTimeout(() => {
+        navigate("/dashboard");
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [session, navigate]);
 
   return (
     <div
@@ -106,6 +120,18 @@ const LoginPage: React.FC = () => {
                 Welcome, {session.user?.name || "User"}!{" "}
                 <span style={{ fontSize: 22 }}>👋</span>
               </div>
+              {redirecting && (
+                <div
+                  style={{
+                    color: "#5e35b1",
+                    fontWeight: 600,
+                    fontSize: 16,
+                    marginBottom: 16,
+                  }}
+                >
+                  Redirecting to dashboard in 3 seconds...
+                </div>
+              )}
               <button
                 onClick={() => signOut()}
                 style={{

@@ -1,11 +1,12 @@
 import { CircleUser, PlusCircle } from "lucide-react";
-import { useLocation } from "react-router-dom";
-import { useSession } from "../../lib/auth";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSession, signOut } from "../../lib/auth";
 import LoadingPage from "../LoadingPage";
 import "./Navbar.css";
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { data, isPending } = useSession();
   if (isPending) {
     return <LoadingPage></LoadingPage>;
@@ -13,30 +14,53 @@ const Navbar = () => {
   const isLoginPage = location.pathname === "/login";
 
   return (
-    <nav className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white shadow-lg animate-navbar-fade">
-      <div className="flex items-center">
-        <img
-          src="/vite.svg"
-          alt="Vite Logo"
-          className="h-10 w-10 drop-shadow-anime animate-logo-bounce"
-        />
-        <span className="ml-2 text-2xl font-extrabold tracking-widest font-anime">
-          Lormas
-        </span>
-      </div>
+    <nav className="flex items-center justify-between px-4 py-2.5 text-white shadow-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 animate-navbar-fade">
+      <Link to="/dashboard">
+        <div className="flex items-center">
+          <img
+            src="/vite.svg"
+            alt="Vite Logo"
+            className="w-10 h-10 drop-shadow-anime animate-logo-bounce"
+          />
+          <span className="ml-2 text-2xl font-extrabold tracking-widest font-anime">
+            Lormas
+          </span>
+        </div>
+      </Link>
       {isLoginPage ? null : (
         <div className="flex items-center space-x-3">
           <button
-            className="bg-white bg-opacity-20 hover:bg-opacity-40 text-pink-200 hover:text-white rounded-full p-2 shadow-anime transition-all duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-pink-300 animate-pop"
+            className="p-2 font-bold text-pink-200 transition-all duration-300 ease-out bg-transparent rounded-full bg-opacity-20 hover:bg-opacity-40 shadow-anime focus:outline-none focus:ring-2 focus:ring-white hover:text-white animate-pop"
+            title="Go to Admin Dashboard"
+            onClick={() => navigate("/dashboard/admin")}
+          >
+            Admin Dashboard
+          </button>
+          <button
+            className="p-2 text-pink-200 transition-all duration-300 ease-out bg-transparent rounded-full bg-opacity-20 hover:bg-opacity-40 hover:text-white shadow-anime focus:outline-none focus:ring-2 focus:ring-pink-300 animate-pop"
             title="Create Container"
             onClick={() => alert("Create Container!")}
           >
             <PlusCircle className="h-7 w-7" />
           </button>
           <div className="relative group">
-            <CircleUser className="h-10 w-10 cursor-pointer hover:scale-110 transition-transform duration-200" />
-            <div className="absolute right-0 mt-2 w-32 bg-white bg-opacity-90 text-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 p-2 text-sm font-semibold">
-              {data?.user?.name || "User"}
+            <CircleUser className="w-10 h-10 transition-transform duration-200 cursor-pointer hover:scale-110" />
+            <div className="absolute right-0 z-10 flex flex-col items-start w-32 p-2 mt-2 text-sm font-semibold text-gray-800 transition-opacity duration-300 bg-white rounded-lg shadow-lg opacity-0 bg-opacity-90 group-hover:opacity-100">
+              <span className="mb-2">{data?.user?.name || "User"}</span>
+              {/* TODO: add the button to go to profile setting */}
+              <button
+                className="w-full px-2 py-1 font-bold text-left text-pink-600 transition-colors duration-200 bg-pink-100 rounded hover:bg-pink-200"
+                onClick={() => navigate("/setting/user")}
+              >
+                Profile
+              </button>
+              {/* TODO: Add logout */}
+              <button
+                className="w-full px-2 py-1 mt-1 font-bold text-left text-red-600 transition-colors duration-200 bg-red-100 rounded hover:bg-red-200"
+                onClick={() => signOut()}
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

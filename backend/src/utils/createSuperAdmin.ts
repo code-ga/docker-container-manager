@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { db } from "../database"
 import { table } from "../database/schema";
 import { auth } from "../libs/auth/auth";
@@ -17,17 +18,20 @@ function generatePassword() {
   return retVal;
 }
 
+export const superAdminPermission = ["admin"]
+
 export const createSuperAdmin = async () => {
   const user = await db.select().from(table.user).limit(1);
 
   if (!user.length) {
     const user_password = process.env.SUPER_ADMIN_PASSWORD || generatePassword()
-    await auth.api.signUpEmail({
+    const result = await auth.api.signUpEmail({
       body: {
         ...defaultSuperAdmin,
         password: user_password
       }
     })
+    await db.update(table.user).set({ permission: superAdminPermission }).where(eq(table.user.id, result.user.id))
     console.log("Super Admin created successfully with email:", defaultSuperAdmin.email, "and password:", user_password);
   }
 }

@@ -1,0 +1,25 @@
+.font-anime {
+  font-family: "Zen Dots", "Orbitron", cursive;
+}
+.shadow-anime {
+  box-shadow: 0 4px 20px 0 rgba(168, 139, 250, 0.3);
+}
+.animate-spin-anime {
+  animation: spinAnime 1.2s linear infinite;
+}
+.animate-bounce-anime {
+  animation: bounceAnime 1.2s infinite alternate;
+}
+@keyframes spinAnime {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes bounceAnime {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-18px) scale(1.08);
+  }
+}
