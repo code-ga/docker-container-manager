@@ -2,7 +2,9 @@ import { betterAuth } from "better-auth";
 import { openAPI } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../../database";
-import { account, session, user, verification } from "../../database/schema";
+import { eq } from "drizzle-orm";
+import { account, session, table, user, verification } from "../../database/schema";
+import { config } from "../../config";
 export const auth = betterAuth({
   database: drizzleAdapter(db, { // We're using Drizzle as our database
     provider: "pg",
@@ -17,7 +19,7 @@ export const auth = betterAuth({
     },
   }),
   emailAndPassword: { // we need to verify the email if use this
-    enabled: true, // If you want to use email and password auth
+    enabled: config.allowPublicRegistration, // If you want to use email and password auth
     autoSignIn: false,
   },
   socialProviders: {
@@ -28,14 +30,17 @@ export const auth = betterAuth({
     github: {
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      disableSignUp: config.allowPublicRegistration
     },
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      disableSignUp: config.allowPublicRegistration
     },
     discord: {
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+      disableSignUp: config.allowPublicRegistration
     },
   },
   trustedOrigins: ["http://localhost:3000/api/auth", "http://localhost:3000", "http://localhost:5173", "http://localhost:5173/auth/callback", "https://self-hosted-forum.vercel.app", "https://self-hosted-forum.vercel.app/", "https://self-hosted-forum.vercel.app/auth/callback"],
@@ -58,9 +63,11 @@ export const auth = betterAuth({
       create: {
         before: async (user) => {
           // Modify user data before creation
-          return { data: { ...user, permission: ["user"] } };
+          const roleIds = await db.select({ id: table.roles.id }).from(table.roles).where(eq(table.roles.name, 'user'));
+          return { data: { ...user, roleIds: roleIds.map(role => role.id) } };
         }
       },
     }
-  }
+  },
+  
 });

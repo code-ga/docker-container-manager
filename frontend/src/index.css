@@ -1,42 +1,244 @@
-/* Anime-style spinner and font */
-@import url("https://fonts.googleapis.com/css2?family=Zen+Dots&family=Orbitron:wght@500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
-/* @tailwind base; */
-/* @tailwind components; */
-/* @tailwind utilities; */
+
+/* CSS Variables for Theme System */
+:root {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --neon-blue: #00f5ff;
+  --neon-purple: #ff00ff;
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+}
+
+/* Dark theme base styles */
+.dark {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --neon-blue: #00f5ff;
+  --neon-purple: #ff00ff;
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+}
+
+/* Dark mode base styles */
+html.dark {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  color: white;
+}
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
     "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: rgba(24, 18, 43, 0.85);
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  color: var(--text-primary);
+  min-height: 100vh;
 }
 
+/* Global styles */
 .font-anime {
-  font-family: "Zen Dots", "Orbitron", cursive;
+  font-family: "Inter", cursive;
 }
+
 .shadow-anime {
-  box-shadow: 0 4px 20px 0 rgba(168, 139, 250, 0.3);
+  box-shadow: 0 4px 20px 0 rgba(0, 245, 255, 0.15);
 }
+
+.shadow-neon {
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+}
+
+/* Particle effects */
+.particle-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.particle {
+  position: absolute;
+  background: var(--neon-blue);
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: particleFloat var(--duration) ease-in-out infinite;
+  animation-delay: var(--delay);
+  width: var(--size);
+  height: var(--size);
+  left: calc(var(--x, 0) * 1%);
+  top: calc(var(--y, 0) * 1%);
+}
+
+/* Neon pulse animation */
+@keyframes neonPulse {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--neon-blue);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--neon-blue);
+  }
+}
+
+/* Particle burst animation for action feedback */
+@keyframes particleBurst {
+  0% {
+    opacity: 1;
+    transform: scale(0) translate(0, 0);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2) translate(var(--dx, 0), var(--dy, 0));
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8) translate(var(--dx, 0), var(--dy, 0));
+  }
+}
+
+/* Float animation for background particles */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Particle float animation */
+@keyframes particleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+/* Logo bounce animation */
+@keyframes logoBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Navbar fade animation */
+@keyframes navbarFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pop animation */
+@keyframes pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Legacy animations for compatibility */
 .animate-spin-anime {
   animation: spinAnime 1.2s linear infinite;
 }
+
 .animate-bounce-anime {
   animation: bounceAnime 1.2s infinite alternate;
 }
+
 @keyframes spinAnime {
   100% {
     transform: rotate(360deg);
   }
 }
+
 @keyframes bounceAnime {
   0% {
     transform: translateY(0);
   }
   100% {
     transform: translateY(-18px) scale(1.08);
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection styles */
+::selection {
+  background: var(--neon-blue);
+  color: var(--bg-primary);
+}
+
+/* Focus styles */
+*:focus {
+  outline: 2px solid var(--neon-blue);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neon-blue);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-purple);
+}
+
+/* Accessibility: Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable specific animations */
+  .particle {
+    animation: none !important;
+  }
+
+  /* Disable framer-motion animations */
+  [data-framer-appear-id] {
+    transform: none !important;
+    opacity: 1 !important;
   }
 }

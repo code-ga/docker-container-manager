@@ -1,5 +1,6 @@
 import { CircleUser, PlusCircle } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useSession, signOut } from "../../lib/auth";
 import LoadingPage from "../LoadingPage";
 import "./Navbar.css";
@@ -29,22 +30,32 @@ const Navbar = () => {
       </Link>
       {isLoginPage ? null : (
         <div className="flex items-center space-x-3">
-          <button
-            className="p-2 font-bold text-pink-200 transition-all duration-300 ease-out bg-transparent rounded-full bg-opacity-20 hover:bg-opacity-40 shadow-anime focus:outline-none focus:ring-2 focus:ring-white hover:text-white animate-pop"
+          <motion.button
+            className="p-2 font-bold text-pink-200 bg-transparent rounded-full bg-opacity-20 shadow-anime focus:outline-none focus:ring-2 focus:ring-white hover:text-white"
             title="Go to Admin Dashboard"
             onClick={() => navigate("/dashboard/admin")}
+            whileHover={{ scale: 1.1, rotateY: 5 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             Admin Dashboard
-          </button>
-          <button
-            className="p-2 text-pink-200 transition-all duration-300 ease-out bg-transparent rounded-full bg-opacity-20 hover:bg-opacity-40 hover:text-white shadow-anime focus:outline-none focus:ring-2 focus:ring-pink-300 animate-pop"
+          </motion.button>
+          <motion.button
+            className="p-2 text-pink-200 bg-transparent rounded-full bg-opacity-20 shadow-anime focus:outline-none focus:ring-2 focus:ring-pink-300"
             title="Create Container"
             onClick={() => alert("Create Container!")}
+            whileHover={{ scale: 1.1, rotateY: 5 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             <PlusCircle className="h-7 w-7" />
-          </button>
+          </motion.button>
           <div className="relative group">
-            <CircleUser className="w-10 h-10 transition-transform duration-200 cursor-pointer hover:scale-110" />
+            <motion.div
+              className="cursor-pointer"
+              whileHover={{ scale: 1.1, rotateY: 5 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <CircleUser className="w-10 h-10" />
+            </motion.div>
             <div className="absolute right-0 z-10 flex flex-col items-start w-32 p-2 mt-2 text-sm font-semibold text-gray-800 transition-opacity duration-300 bg-white rounded-lg shadow-lg opacity-0 bg-opacity-90 group-hover:opacity-100">
               <span className="mb-2">{data?.user?.name || "User"}</span>
               {/* TODO: add the button to go to profile setting */}

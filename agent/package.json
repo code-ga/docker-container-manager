@@ -1,0 +1,39 @@
+{
+  "name": "lormas-node-agent",
+  "version": "1.0.0",
+  "description": "Lormas Node Agent for managing containers",
+  "main": "agent.ts",
+  "scripts": {
+    "start": "bun run agent.ts",
+    "dev": "bun run --watch agent.ts",
+    "build": "bun run tsc",
+    "start:js": "bun run agent.js",
+    "dev:js": "bun run --watch agent.js",
+    "test": "bun run test-dockerode.ts"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.8",
+    "uuid": "^10.0.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.44",
+    "@types/node": "^20.19.17",
+    "@types/uuid": "^11.0.0",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.44.1",
+    "@typescript-eslint/parser": "^8.44.1",
+    "bun-types": "^1.2.22",
+    "typescript": "^5.9.2"
+  },
+  "keywords": [
+    "lormas",
+    "container",
+    "agent",
+    "docker",
+    "websocket",
+    "typescript"
+  ],
+  "author": "Lormas Team",
+  "license": "MIT"
+}

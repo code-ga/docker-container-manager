@@ -1,4 +1,4 @@
-import { useSession, signIn, signOut } from "@/lib/auth";
+import { useSession, signIn, signOut } from "../lib/auth";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
