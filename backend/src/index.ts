@@ -171,12 +171,16 @@ export const app = new Elysia()
       if (connectionType === 'node') {
         const connectionId = (ws.data?.store as any)?.connectionId;
         if (connectionId) {
-          wsManager.handleMessage(connectionId, message as string);
+          // Handle both string and object messages (Bun auto-parses JSON)
+          const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
+          wsManager.handleMessage(connectionId, messageStr);
         }
       } else if (connectionType === 'client') {
         const userId = (ws.data?.store as any)?.userId;
         if (userId) {
-          wsManager.handleClientMessage(userId, message as string);
+          // Handle both string and object messages (Bun auto-parses JSON)
+          const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
+          wsManager.handleClientMessage(userId, messageStr);
         }
       }
     },

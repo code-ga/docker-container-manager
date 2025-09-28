@@ -104,3 +104,8 @@ export const StdinResultSchema = t.Object({
   output: t.Optional(t.String()),
   error: t.Optional(t.String()),
 });
+
+export const ErrorMessageSchema = t.Object({
+  type: t.Literal('error'),
+  message: t.String(),
+});

@@ -12,6 +12,7 @@ export {
   PongMessageSchema,
   StdinMessageSchema,
   StdinResultSchema,
+  ErrorMessageSchema,
 } from './schemas';
 
 // Export all TypeScript interfaces
@@ -27,4 +28,5 @@ export type {
   HeartbeatMessage,
   StdinMessage,
   StdinResult,
+  ErrorMessage,
 } from './types';

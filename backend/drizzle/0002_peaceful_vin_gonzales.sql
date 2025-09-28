@@ -1,0 +1,1 @@
+ALTER TABLE "container_migration_history" ALTER COLUMN "container_id" SET DATA TYPE text;

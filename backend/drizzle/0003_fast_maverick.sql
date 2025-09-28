@@ -1,0 +1,1 @@
+ALTER TABLE "containers" ALTER COLUMN "preferred_cluster_id" SET DATA TYPE text;

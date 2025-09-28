@@ -1,0 +1,2 @@
+ALTER TABLE "container_migration_history" ALTER COLUMN "from_node_id" SET DATA TYPE text;--> statement-breakpoint
+ALTER TABLE "container_migration_history" ALTER COLUMN "to_node_id" SET DATA TYPE text;

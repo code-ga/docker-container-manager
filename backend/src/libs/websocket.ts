@@ -17,14 +17,17 @@ import {
   PongMessageSchema,
   StdinMessageSchema,
   StdinResultSchema,
+  ErrorMessageSchema,
   WebSocketMessage,
   CommandResult,
   CommandMessage,
   CommandResultMessage,
   AgentIdentifyMessage,
   HeartbeatMessage,
-  StdinResult
+  StdinResult,
+  ErrorMessage
 } from "../types";
+import { Value } from "@sinclair/typebox/value";
 import { ServerWebSocket } from "bun";
 import { Context } from "elysia";
 
@@ -67,29 +70,32 @@ class WebSocketManager {
     try {
       switch (message.type) {
         case "command":
-          CommandMessageSchema.parse(message);
+          Value.Parse(CommandMessageSchema, message);
           return { isValid: true, schema: CommandMessageSchema };
         case "command_result":
-          CommandResultMessageSchema.parse(message);
+          Value.Parse(CommandResultMessageSchema, message);
           return { isValid: true, schema: CommandResultMessageSchema };
         case "agent_identify":
-          AgentIdentifyMessageSchema.parse(message);
+          Value.Parse(AgentIdentifyMessageSchema, message);
           return { isValid: true, schema: AgentIdentifyMessageSchema };
         case "heartbeat":
-          HeartbeatMessageSchema.parse(message);
+          Value.Parse(HeartbeatMessageSchema, message);
           return { isValid: true, schema: HeartbeatMessageSchema };
         case "ping":
-          PingMessageSchema.parse(message);
+          Value.Parse(PingMessageSchema, message);
           return { isValid: true, schema: PingMessageSchema };
         case "pong":
-          PongMessageSchema.parse(message);
+          Value.Parse(PongMessageSchema, message);
           return { isValid: true, schema: PongMessageSchema };
         case "stdin":
-          StdinMessageSchema.parse(message);
+          Value.Parse(StdinMessageSchema, message);
           return { isValid: true, schema: StdinMessageSchema };
         case "stdin_result":
-          StdinResultSchema.parse(message);
+          Value.Parse(StdinResultSchema, message);
           return { isValid: true, schema: StdinResultSchema };
+        case "error":
+          Value.Parse(ErrorMessageSchema, message);
+          return { isValid: true, schema: ErrorMessageSchema };
         default:
           return {
             isValid: false,
@@ -276,6 +282,10 @@ class WebSocketManager {
         case "ping":
           this.sendToConnection(connectionId, { type: "pong" });
           break;
+        case "error":
+          // Error messages are just for client notification, no action needed
+          logger.info("Error message received from agent", { message: (message as ErrorMessage).message });
+          break;
         default:
           logger.warn("Unknown message type", { type: message.type });
           this.sendToConnection(connectionId, {
@@ -286,6 +296,10 @@ class WebSocketManager {
     } catch (error) {
       logger.error("Error parsing WebSocket message", {
         error: error instanceof Error ? error.message : String(error),
+        connectionId,
+        rawData: data,
+        dataType: typeof data,
+        dataLength: data?.length || 0,
       });
       this.sendToConnection(connectionId, {
         type: "error",
@@ -662,35 +676,66 @@ class WebSocketManager {
     message: HeartbeatMessage
   ): Promise<void> {
     try {
-      const { nodeId, resources, timestamp } = message;
+      const { resources, timestamp } = message;
 
-      if (!nodeId) {
-        logger.warn("Heartbeat message missing nodeId");
+      // Get the WebSocket connection to extract the correct node ID
+      const ws = this.connections.get(connectionId);
+      if (!ws) {
+        logger.warn("Heartbeat received but connection not found", { connectionId });
         return;
       }
 
-      // Upsert node health record
-      await db
-        .insert(table.node_health)
-        .values({
+      // Extract node ID from WebSocket data (set during handleNodeConnection)
+      const nodeId = (ws.data.store as any)?.nodeId;
+      if (!nodeId) {
+        logger.warn("Heartbeat received but no nodeId in connection data", { connectionId });
+        return;
+      }
+
+      // Verify the node exists in the database before inserting
+      const existingNode = await db
+        .select()
+        .from(table.nodes)
+        .where(eq(table.nodes.id, nodeId))
+        .limit(1);
+
+      if (!existingNode.length) {
+        logger.error("Node not found in database", { nodeId, connectionId });
+        return;
+      }
+
+      // Check if node health record already exists
+      const existingHealth = await db
+        .select()
+        .from(table.node_health)
+        .where(eq(table.node_health.node_id, nodeId))
+        .limit(1);
+
+      if (existingHealth.length > 0) {
+        // Update existing record
+        await db
+          .update(table.node_health)
+          .set({
+            status: "healthy",
+            last_heartbeat: new Date(timestamp),
+            updatedAt: sql`now()`,
+          })
+          .where(eq(table.node_health.node_id, nodeId));
+      } else {
+        // Insert new record
+        await db.insert(table.node_health).values({
           node_id: nodeId,
           status: "healthy",
           last_heartbeat: new Date(timestamp),
           updatedAt: sql`now()`,
-        })
-        .onConflictDoUpdate({
-          target: table.node_health.node_id,
-          set: {
-            status: "healthy",
-            last_heartbeat: new Date(timestamp),
-            updatedAt: sql`now()`,
-          },
         });
+      }
 
       logger.info(`Heartbeat received from node ${nodeId}`, { resources });
     } catch (error) {
       logger.error("Error handling heartbeat", {
         error: error instanceof Error ? error.message : String(error),
+        connectionId,
       });
     }
   }

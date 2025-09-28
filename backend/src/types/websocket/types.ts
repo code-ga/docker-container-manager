@@ -86,3 +86,8 @@ export interface StdinResult extends WebSocketMessage {
   output?: string;
   error?: string;
 }
+
+export interface ErrorMessage extends WebSocketMessage {
+  type: 'error';
+  message: string;
+}

@@ -145,7 +145,7 @@ export const containers = pgTable("containers", {
   environment: json('environment').$type<{[key: string]: string}>().default({}), // Environment variables
   type: varchar('type').$type<'standard' | 'ha'>().default('standard'), // Container type: standard or ha
   migration_status: varchar('migration_status').$type<'idle' | 'migrating' | 'failed'>().default('idle'), // Migration status for HA containers
-  preferred_cluster_id: uuid('preferred_cluster_id').references(() => clusters.id), // Preferred cluster for HA containers
+  preferred_cluster_id: text('preferred_cluster_id').references(() => clusters.id), // Preferred cluster for HA containers
   last_heartbeat: timestamp('last_heartbeat'), // Last heartbeat timestamp for HA containers
   createdAt: timestamp('created_at').notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at').notNull().default(sql`now()`)
@@ -154,7 +154,7 @@ export const containers = pgTable("containers", {
 // Node health table for HA monitoring
 export const node_health = pgTable("node_health", {
   id: uuid('id').defaultRandom().primaryKey(),
-  node_id: uuid('node_id').notNull().references(() => nodes.id, { onDelete: 'cascade' }),
+  node_id: text('node_id').notNull().references(() => nodes.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 20 }).$type<'healthy' | 'unhealthy'>().notNull().default('healthy'),
   last_heartbeat: timestamp('last_heartbeat').notNull(),
   createdAt: timestamp('created_at').notNull().default(sql`now()`),
@@ -164,9 +164,9 @@ export const node_health = pgTable("node_health", {
 // Container migration history table
 export const container_migration_history = pgTable("container_migration_history", {
   id: uuid('id').defaultRandom().primaryKey(),
-  container_id: uuid('container_id').notNull().references(() => containers.id, { onDelete: 'cascade' }),
-  from_node_id: uuid('from_node_id').notNull().references(() => nodes.id, { onDelete: 'cascade' }),
-  to_node_id: uuid('to_node_id').notNull().references(() => nodes.id, { onDelete: 'cascade' }),
+  container_id: text('container_id').notNull().references(() => containers.id, { onDelete: 'cascade' }),
+  from_node_id: text('from_node_id').notNull().references(() => nodes.id, { onDelete: 'cascade' }),
+  to_node_id: text('to_node_id').notNull().references(() => nodes.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 20 }).$type<'completed' | 'failed'>().notNull(),
   timestamp: timestamp('timestamp').notNull().default(sql`now()`)
 });

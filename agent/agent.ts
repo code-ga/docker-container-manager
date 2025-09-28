@@ -28,6 +28,7 @@ interface Message {
   environment?: Record<string, string>;
   lines?: number;
   input?: string;
+  message?: string;
 }
 
 interface HeartbeatMessage {
@@ -196,10 +197,13 @@ class NodeAgent {
 
     this.ws.on('message', async (data: Buffer) => {
       try {
-        const message: Message = JSON.parse(data.toString());
+        const rawData = data.toString();
+        log('debug', 'Received raw message', { rawData, dataType: typeof data });
+        const message: Message = JSON.parse(rawData);
+        log('debug', 'Parsed message', { type: message.type });
         await this.handleMessage(message);
       } catch (error: any) {
-        log('error', 'Failed to parse message', { error: error.message });
+        log('error', 'Failed to parse message', { error: error.message, rawData: data.toString() });
       }
     });
 
@@ -231,7 +235,9 @@ class NodeAgent {
 
   private send(message: OutgoingMessage): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
+      const messageStr = JSON.stringify(message);
+      log('debug', 'Sending message', { type: message.type, messageStr });
+      this.ws.send(messageStr);
     } else {
       log('warn', 'Cannot send message: WebSocket not connected');
     }
@@ -246,6 +252,9 @@ class NodeAgent {
         break;
       case 'ping':
         this.send({ type: 'pong' });
+        break;
+      case 'error':
+        log('error', 'Server error message', { message: message.message });
         break;
       default:
         log('warn', 'Unknown message type', { type: message.type });
