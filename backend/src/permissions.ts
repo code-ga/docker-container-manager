@@ -12,7 +12,8 @@ import { auth } from './libs/auth/auth';
  */
 export async function hasPermission(userId: string, permission: string): Promise<boolean> {
   try {
-    const result = await db
+    // First try exact match
+    const exactResult = await db
       .select({
         permissionId: table.permissions.id
       })
@@ -28,7 +29,28 @@ export async function hasPermission(userId: string, permission: string): Promise
       )
       .limit(1);
 
-    return result.length > 0;
+    if (exactResult.length > 0) {
+      return true;
+    }
+
+    // If no exact match, check for wildcard permissions
+    const wildcardResult = await db
+      .select({
+        permissionId: table.permissions.id
+      })
+      .from(table.userRoles)
+      .innerJoin(table.roles, eq(table.userRoles.roleId, table.roles.id))
+      .innerJoin(table.rolePermissions, eq(table.roles.id, table.rolePermissions.roleId))
+      .innerJoin(table.permissions, eq(table.rolePermissions.permissionId, table.permissions.id))
+      .where(
+        and(
+          eq(table.userRoles.userId, userId),
+          eq(table.permissions.name, `${permission.split(':').slice(0, -1).join(':')}:*`)
+        )
+      )
+      .limit(1);
+
+    return wildcardResult.length > 0;
   } catch (error) {
     console.error('Error checking permission:', error);
     return false;

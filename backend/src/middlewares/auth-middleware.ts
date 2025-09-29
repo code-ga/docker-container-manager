@@ -10,7 +10,12 @@ export const userMiddleware = async (c: Context) => {
     c.set.status = 401;
     return { status: 401, type: "error", success: false, message: "Unauthorized Access: Token is missing" };
   }
+  console.log("User session:", session);
 
+  if (!session.user) {
+    c.set.status = 401;
+    return { status: 401, type: "error", success: false, message: "Unauthorized Access: Invalid session" };
+  }
   return {
     user: session.user,
     session: session.session

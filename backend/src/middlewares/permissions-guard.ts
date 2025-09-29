@@ -10,8 +10,8 @@ import { auth } from "../libs/auth/auth";
 export function createPermissionResolve(permission: string) {
   return async (context: Context) => {
     try {
+      console.log(context, "Checking permission resolve for:", permission);
       const session = await auth.api.getSession({ headers: context.request.headers });
-
       if (!session) {
         context.set.status = 401;
         return {
@@ -23,6 +23,7 @@ export function createPermissionResolve(permission: string) {
       }
 
       const userId = session.user.id;
+      console.log(`Checking permission '${permission}' for user ID: ${userId}`);
       const hasPerm = await hasPermission(userId, permission);
 
       if (!hasPerm) {

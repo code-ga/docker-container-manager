@@ -139,33 +139,52 @@ export async function seedInitialData() {
 
       // Assign permissions to role
       for (const permissionName of role.permissions) {
-        const permission = await db
-          .select()
-          .from(table.permissions)
-          .where(eq(table.permissions.name, permissionName))
-          .limit(1);
+        // Handle wildcard permissions by expanding them to individual permissions
+        let permissionsToAssign: string[] = [permissionName];
 
-        if (permission.length > 0) {
-          const permissionId = permission[0].id;
+        if (permissionName.endsWith(':*')) {
+          const basePermission = permissionName.slice(0, -2); // Remove ':*' suffix
+          // Find all permissions that start with the base permission
+          const allPermissions = await db
+            .select({ name: table.permissions.name })
+            .from(table.permissions)
+            .where(sql`${table.permissions.name} LIKE ${basePermission + ':%'}`);
 
-          // Check if role-permission relationship exists
-          const existingRelation = await db
+          permissionsToAssign = allPermissions.map(p => p.name);
+
+          // Also include the wildcard permission itself
+          permissionsToAssign.push(permissionName);
+        }
+
+        for (const permName of permissionsToAssign) {
+          const permission = await db
             .select()
-            .from(table.rolePermissions)
-            .where(
-              eq(table.rolePermissions.roleId, roleId) &&
-              eq(table.rolePermissions.permissionId, permissionId)
-            )
+            .from(table.permissions)
+            .where(eq(table.permissions.name, permName))
             .limit(1);
 
-          if (existingRelation.length === 0) {
-            await db.insert(table.rolePermissions).values({
-              id: crypto.randomUUID(),
-              roleId,
-              permissionId,
-              createdAt: sql`now()`
-            });
-            logger.info(`Assigned permission '${permissionName}' to role '${role.name}'`, {}, { module: 'seed', function: 'seedInitialData' });
+          if (permission.length > 0) {
+            const permissionId = permission[0].id;
+
+            // Check if role-permission relationship exists
+            const existingRelation = await db
+              .select()
+              .from(table.rolePermissions)
+              .where(
+                eq(table.rolePermissions.roleId, roleId) &&
+                eq(table.rolePermissions.permissionId, permissionId)
+              )
+              .limit(1);
+
+            if (existingRelation.length === 0) {
+              await db.insert(table.rolePermissions).values({
+                id: crypto.randomUUID(),
+                roleId,
+                permissionId,
+                createdAt: sql`now()`
+              });
+              logger.info(`Assigned permission '${permName}' to role '${role.name}'`, {}, { module: 'seed', function: 'seedInitialData' });
+            }
           }
         }
       }

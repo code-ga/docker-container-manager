@@ -8,15 +8,16 @@ import {
 import { AuthProvider } from "./components/AuthProvider";
 import { DarkThemeProvider } from "./components/providers/DarkThemeProvider";
 import { AnimeWrapper } from "./components/providers/AnimeWrapper";
+import { ToastProvider } from "./components/ToastProvider";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import LoginPage from "./components/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import UserSettingsPage from "./components/UserSettingsPage";
+import UsersPage from "./pages/Settings/UsersPage";
+import RolesPage from "./pages/Settings/RolesPage";
 
 // Placeholder components for routes that will be implemented later
 const DashboardPage = () => <div className="text-white">Dashboard Overview</div>;
-const UsersPage = () => <div className="text-white">Users Management</div>;
-const RolesPage = () => <div className="text-white">Roles Management</div>;
 const NodesPage = () => <div className="text-white">Nodes Management</div>;
 const ClustersPage = () => <div className="text-white">Clusters Management</div>;
 const EggsPage = () => <div className="text-white">Eggs Management</div>;
@@ -85,7 +86,8 @@ function App() {
       <AuthProvider>
         <DarkThemeProvider>
           <AnimeWrapper>
-            <Routes>
+            <ToastProvider>
+              <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -100,7 +102,6 @@ function App() {
                   }>
                     <Route index element={<DashboardPage />} />
                     <Route path="users" element={<UsersPage />} />
-                    <Route path="roles" element={<RolesPage />} />
                     <Route path="nodes" element={<NodesPage />} />
                     <Route path="clusters" element={<ClustersPage />} />
                     <Route path="eggs" element={<EggsPage />} />
@@ -116,17 +117,8 @@ function App() {
                       <Outlet />
                     </DashboardLayout>
                   }>
-                    <Route path="user" element={<UserSettingsPage />} />
-                  </Route>
-                </Route>
-
-                {/* Protected Settings Routes (singular path for compatibility) */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/setting" element={
-                    <DashboardLayout>
-                      <Outlet />
-                    </DashboardLayout>
-                  }>
+                    <Route path="users" element={<UsersPage />} />
+                    <Route path="roles" element={<RolesPage />} />
                     <Route path="user" element={<UserSettingsPage />} />
                   </Route>
                 </Route>
@@ -134,6 +126,7 @@ function App() {
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+            </ToastProvider>
           </AnimeWrapper>
         </DarkThemeProvider>
       </AuthProvider>

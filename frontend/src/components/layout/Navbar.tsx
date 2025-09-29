@@ -56,16 +56,26 @@ const Navbar = () => {
             >
               <CircleUser className="w-10 h-10" />
             </motion.div>
-            <div className="absolute right-0 z-10 flex flex-col items-start w-32 p-2 mt-2 text-sm font-semibold text-gray-800 transition-opacity duration-300 bg-white rounded-lg shadow-lg opacity-0 bg-opacity-90 group-hover:opacity-100">
+            <div className="absolute right-0 z-10 flex flex-col items-start w-40 p-2 mt-2 text-sm font-semibold text-gray-800 transition-opacity duration-300 bg-white rounded-lg shadow-lg opacity-0 bg-opacity-90 group-hover:opacity-100">
               <span className="mb-2">{data?.user?.name || "User"}</span>
-              {/* TODO: add the button to go to profile setting */}
               <button
                 className="w-full px-2 py-1 font-bold text-left text-pink-600 transition-colors duration-200 bg-pink-100 rounded hover:bg-pink-200"
-                onClick={() => navigate("/setting/user")}
+                onClick={() => navigate("/settings/user")}
               >
                 Profile
               </button>
-              {/* TODO: Add logout */}
+              <button
+                className="w-full px-2 py-1 mt-1 font-bold text-left text-purple-600 transition-colors duration-200 bg-purple-100 rounded hover:bg-purple-200"
+                onClick={() => navigate("/settings/users")}
+              >
+                Users
+              </button>
+              <button
+                className="w-full px-2 py-1 mt-1 font-bold text-left text-indigo-600 transition-colors duration-200 bg-indigo-100 rounded hover:bg-indigo-200"
+                onClick={() => navigate("/settings/roles")}
+              >
+                Roles
+              </button>
               <button
                 className="w-full px-2 py-1 mt-1 font-bold text-left text-red-600 transition-colors duration-200 bg-red-100 rounded hover:bg-red-200"
                 onClick={() => signOut()}

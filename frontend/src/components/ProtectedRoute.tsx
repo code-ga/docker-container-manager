@@ -1,8 +1,9 @@
 import { useSession } from "../lib/auth";
-import { Navigate, Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 
 const ProtectedRoute = () => {
   const { data, isPending } = useSession();
+  const navigate = useNavigate();
 
   if (isPending) {
     return (
@@ -13,7 +14,8 @@ const ProtectedRoute = () => {
   }
 
   if (!data?.session) {
-    return <Navigate to="/login" />;
+    navigate("/login");
+    return null;
   }
 
   return <Outlet />;

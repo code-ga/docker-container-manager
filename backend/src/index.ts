@@ -16,7 +16,6 @@ import { lt } from "drizzle-orm";
 
 const PORT = process.env.PORT || 3000;
 
-console.log("DATABASE_URL:", process.env.DATABASE_URL);
 // Initialize database and create superuser if needed
 async function initializeApp() {
   try {
@@ -188,8 +187,17 @@ setInterval(async () => {
 }, 30000);
 
 export const app = new Elysia()
-  .get("/", () => "")
-  .use(cors())
+  .get("/", () => {
+    logger.info("Health check OK", {}, { module: "index", function: "GET /" });
+    return "";
+  })
+  .use(
+    cors({
+      preflight: true,
+      allowedHeaders: true,
+      credentials: true,
+    })
+  )
   .use(
     swagger({
       version: "1.0.0",

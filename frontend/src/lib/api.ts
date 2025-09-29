@@ -3,6 +3,7 @@ import axios, {
   type AxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
+import { toastManager } from "./toast";
 
 // API Response types
 export interface ApiResponse<T = unknown> {
@@ -24,32 +25,18 @@ export interface ApiError {
 
 // Base API configuration
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 // Create axios instance
 const createApiInstance = (): AxiosInstance => {
   const instance = axios.create({
     baseURL: API_BASE_URL,
     timeout: 10000,
+    withCredentials: true, // Send cookies for Better Auth session management
     headers: {
       "Content-Type": "application/json",
     },
   });
-
-  // Request interceptor to add auth token
-  instance.interceptors.request.use(
-    (config) => {
-      // Get token from localStorage or sessionStorage
-      const token = localStorage.getItem('auth-token') || sessionStorage.getItem('auth-token');
-      if (token) {
-        (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error: unknown) => {
-      return Promise.reject(error);
-    }
-  );
 
   // Response interceptor to handle common errors
   instance.interceptors.response.use(
@@ -57,9 +44,29 @@ const createApiInstance = (): AxiosInstance => {
       return response;
     },
     (error: unknown) => {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        // Token expired or invalid, redirect to login
-        window.location.href = "/login";
+      if (axios.isAxiosError(error) && error.response?.status) {
+        const status = error.response.status;
+
+        switch (status) {
+          case 401:
+            // Token expired or invalid, redirect to login
+            window.location.href = "/login";
+            break;
+          case 403:
+            // Access denied - insufficient permissions
+            toastManager.showError("Access Denied", "Insufficient permissions");
+            break;
+          case 400:
+            // Bad request - client error
+            toastManager.showError("Bad Request", "Please check your input");
+            break;
+          default:
+            // For other errors, show generic message if available
+            if (error.response?.data?.message) {
+              toastManager.showError("Error", error.response.data.message);
+            }
+            break;
+        }
       }
       return Promise.reject(error);
     }
@@ -161,13 +168,13 @@ export const apiClient = new ApiClient(api);
 // Specific API endpoints
 export const apiEndpoints = {
   // Users
-  users: {
-    list: () => apiClient.get("/users"),
-    get: (id: string) => apiClient.get(`/users/${id}`),
-    create: (data: unknown) => apiClient.post("/users", data),
-    update: (id: string, data: unknown) => apiClient.put(`/users/${id}`, data),
-    delete: (id: string) => apiClient.delete(`/users/${id}`),
-  },
+   users: {
+     list: () => apiClient.get("/user"),
+     get: (id: string) => apiClient.get(`/user/${id}`),
+     create: (data: unknown) => apiClient.post("/user", data),
+     update: (id: string, data: unknown) => apiClient.put(`/user/${id}`, data),
+     delete: (id: string) => apiClient.delete(`/user/${id}`),
+   },
 
   // Containers
   containers: {
