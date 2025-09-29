@@ -1,11 +1,10 @@
 import React from 'react';
 import {
-  Navigate,
-  Route,
-  BrowserRouter as Router,
-  Routes,
-  Outlet,
-} from "react-router-dom";
+   Navigate,
+   Route,
+   Routes,
+   Outlet,
+ } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import { DarkThemeProvider } from "./components/providers/DarkThemeProvider";
 import { AnimeWrapper } from "./components/providers/AnimeWrapper";
@@ -86,8 +85,7 @@ function App() {
       <AuthProvider>
         <DarkThemeProvider>
           <AnimeWrapper>
-            <Router>
-              <Routes>
+            <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -107,6 +105,7 @@ function App() {
                     <Route path="clusters" element={<ClustersPage />} />
                     <Route path="eggs" element={<EggsPage />} />
                     <Route path="containers" element={<ContainersPage />} />
+                    <Route path="admin" element={<DashboardPage />} />
                   </Route>
                 </Route>
 
@@ -121,10 +120,20 @@ function App() {
                   </Route>
                 </Route>
 
+                {/* Protected Settings Routes (singular path for compatibility) */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/setting" element={
+                    <DashboardLayout>
+                      <Outlet />
+                    </DashboardLayout>
+                  }>
+                    <Route path="user" element={<UserSettingsPage />} />
+                  </Route>
+                </Route>
+
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </Router>
           </AnimeWrapper>
         </DarkThemeProvider>
       </AuthProvider>

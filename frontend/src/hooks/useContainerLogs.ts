@@ -3,7 +3,9 @@ import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { apiEndpoints } from '../lib/api';
 import type { LogEntry } from '../components/entities/LogViewer';
-import type { LogMessage, SubscribeMessage, UnsubscribeMessage } from '../../../backend/src/types';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import type { LogMessage, SubscribeMessage, UnsubscribeMessage } from '../../../backend/src/types/index';
 
 // UUID generator for stdin messages
 const generateId = () => Math.random().toString(36).substr(2, 9);

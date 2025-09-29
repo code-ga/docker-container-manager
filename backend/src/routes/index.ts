@@ -1,12 +1,14 @@
 import Elysia from "elysia";
 import betterAuthView from "../libs/auth/auth-view";
-import { userRouter } from "./user";
-import { rolesRouter } from "./roles";
+import { createPermissionResolve } from "../middlewares/permissions-guard";
 import { clustersRouter } from "./clusters";
-import { nodesRouter } from "./nodes";
-import { eggsRouter } from "./eggs";
 import { containersRouter } from "./containers";
-import { createPermissionResolve, createMultiPermissionResolve, createAnyPermissionResolve } from "../middlewares/permissions-guard";
+import { eggsRouter } from "./eggs";
+import { nodesRouter } from "./nodes";
+import { rolesRouter } from "./roles";
+import { userRouter } from "./user";
+import { db } from "../database";
+import { sql } from "drizzle-orm";
 
 const apiRouter = new Elysia({
   prefix: "/api", detail: {
@@ -15,6 +17,32 @@ const apiRouter = new Elysia({
   }
 })
   .all("/auth/*", betterAuthView)
+
+  // Health check route (public, no authentication required)
+  .get("/health", async () => {
+    try {
+      // Simple database check - try to query a system table
+      await db.select({ count: sql`1` }).from(sql`information_schema.tables`).limit(1);
+
+      return {
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        database: "connected"
+      };
+    } catch (error) {
+      return {
+        status: "error",
+        timestamp: new Date().toISOString(),
+        database: "disconnected",
+        error: error instanceof Error ? error.message : "Unknown database error"
+      };
+    }
+  }, {
+    detail: {
+      description: "Health check endpoint",
+      tags: ["health"]
+    }
+  })
 
   // Public routes (no authentication required)
   .use(userRouter)

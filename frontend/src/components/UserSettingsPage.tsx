@@ -38,7 +38,11 @@ const UserSettingsPage: React.FC = () => {
           discord: false,
         };
         for (const account of data.data) {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          /// @ts-ignore
           if (account.provider in linkedAccounts) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            /// @ts-ignore
             linkedAccounts[account.provider as keyof LinkedAccounts] = true;
           }
         }
@@ -86,8 +90,7 @@ const UserSettingsPage: React.FC = () => {
         boxShadow: "0 6px 32px 0 rgba(168,139,250,0.25)",
         color: "#fff",
         position: "relative",
-      }}
-    >
+      }}>
       <h2
         style={{
           fontSize: 28,
@@ -95,8 +98,7 @@ const UserSettingsPage: React.FC = () => {
           color: "#a78bfa",
           marginBottom: 24,
           letterSpacing: 1,
-        }}
-      >
+        }}>
         User Settings
       </h2>
       <div
@@ -107,8 +109,7 @@ const UserSettingsPage: React.FC = () => {
           alignItems: "flex-start",
           justifyContent: "space-between",
           flexWrap: "wrap",
-        }}
-      >
+        }}>
         {/* Profile Settings Section */}
         <div
           style={{
@@ -119,8 +120,7 @@ const UserSettingsPage: React.FC = () => {
             minWidth: 320,
             flex: 1,
             maxWidth: 420,
-          }}
-        >
+          }}>
           <h3
             style={{
               color: "#f472b6",
@@ -128,8 +128,7 @@ const UserSettingsPage: React.FC = () => {
               marginBottom: 18,
               fontSize: 20,
               textAlign: "left",
-            }}
-          >
+            }}>
             Profile Settings
           </h3>
           {/* Change Email Section */}

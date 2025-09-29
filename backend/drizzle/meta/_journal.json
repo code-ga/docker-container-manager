@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1758899630562,
-      "tag": "0000_worthless_mindworm",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1758994585415,
-      "tag": "0001_wealthy_epoch",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1758994646842,
-      "tag": "0002_peaceful_vin_gonzales",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1758994693224,
-      "tag": "0003_fast_maverick",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1758994738804,
-      "tag": "0004_last_gideon",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1758994780110,
-      "tag": "0005_grey_thena",
+      "when": 1759140816191,
+      "tag": "0000_nasty_supreme_intelligence",
       "breakpoints": true
     }
   ]

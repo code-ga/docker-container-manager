@@ -1,0 +1,11 @@
+node_modules
+.git
+*.log
+.env
+bun.lock
+coverage/
+dist/
+test/
+tests/
+**/*.test.ts
+**/*.test.js

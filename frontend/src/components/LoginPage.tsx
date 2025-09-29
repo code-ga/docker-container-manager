@@ -10,8 +10,7 @@ const AnimeBackground = () => (
     style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
     viewBox="0 0 1440 800"
     fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+    xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="animeGradient" x1="0" y1="0" x2="0" y2="1">
         <stop stopColor="#f7b2ff" />
@@ -24,13 +23,16 @@ const AnimeBackground = () => (
     <ellipse cx="700" cy="400" rx="180" ry="60" fill="#fff1c1" opacity="0.2" />
   </svg>
 );
-const callbackURL = import.meta.env.DEV
-  ? "http://localhost:5173/dashboard"
-  : "https://self-hosted-forum.vercel.app/dashboard";
+// const callbackURL = import.meta.env.DEV
+//   ? "http://localhost:8080/dashboard"
+//   : "https://self-hosted-forum.vercel.app/dashboard";
 const LoginPage: React.FC = () => {
   const { data: session } = useSession();
+  console.log("Session data:", session);
   const navigate = useNavigate();
   const [redirecting, setRedirecting] = useState(false);
+  const currentUrl = new URL(window.location.href);
+  const callbackURL = currentUrl.origin + "/dashboard";
 
   useEffect(() => {
     if (session) {
@@ -51,8 +53,7 @@ const LoginPage: React.FC = () => {
         fontFamily: "'Noto Sans JP', 'Roboto', 'Arial', sans-serif",
         overflow: "hidden",
         background: "linear-gradient(135deg, #f7b2ff 0%, #a0c4ff 100%)",
-      }}
-    >
+      }}>
       <AnimeBackground />
       <div
         style={{
@@ -63,8 +64,7 @@ const LoginPage: React.FC = () => {
           alignItems: "center",
           justifyContent: "center",
           minHeight: "100vh",
-        }}
-      >
+        }}>
         <div
           style={{
             background: "rgba(255,255,255,0.85)",
@@ -76,8 +76,7 @@ const LoginPage: React.FC = () => {
             textAlign: "center",
             border: "2px solid #f7b2ff",
             backdropFilter: "blur(8px)",
-          }}
-        >
+          }}>
           <div style={{ marginBottom: 24 }}>
             {/* Cute anime mascot emoji */}
             <span style={{ fontSize: 56, display: "block", marginBottom: 8 }}>
@@ -91,8 +90,7 @@ const LoginPage: React.FC = () => {
                 color: "#a259ff",
                 margin: 0,
                 letterSpacing: 1,
-              }}
-            >
+              }}>
               CMP (Container Manager Panel)
             </h1>
             <p
@@ -102,8 +100,7 @@ const LoginPage: React.FC = () => {
                 marginTop: 8,
                 marginBottom: 0,
                 fontWeight: 500,
-              }}
-            >
+              }}>
               Login to manage your containers securely.
             </p>
           </div>
@@ -115,8 +112,7 @@ const LoginPage: React.FC = () => {
                   color: "#5e35b1",
                   fontWeight: 600,
                   fontSize: 18,
-                }}
-              >
+                }}>
                 Welcome, {session.user?.name || "User"}!{" "}
                 <span style={{ fontSize: 22 }}>👋</span>
               </div>
@@ -127,8 +123,7 @@ const LoginPage: React.FC = () => {
                     fontWeight: 600,
                     fontSize: 16,
                     marginBottom: 16,
-                  }}
-                >
+                  }}>
                   Redirecting to dashboard in 3 seconds...
                 </div>
               )}
@@ -146,8 +141,7 @@ const LoginPage: React.FC = () => {
                   cursor: "pointer",
                   boxShadow: "0 2px 8px rgba(160,196,255,0.2)",
                   transition: "background 0.2s",
-                }}
-              >
+                }}>
                 Logout
               </button>
             </>
@@ -172,8 +166,7 @@ const LoginPage: React.FC = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                }}
-              >
+                }}>
                 <img
                   src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
                   alt="Google"
@@ -203,8 +196,7 @@ const LoginPage: React.FC = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                }}
-              >
+                }}>
                 <img
                   src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
                   alt="GitHub"
@@ -234,8 +226,7 @@ const LoginPage: React.FC = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                }}
-              >
+                }}>
                 <span style={{ display: "flex", alignItems: "center" }}>
                   <img
                     src="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/66e3d80db9971f10a9757c99_Symbol.svg"
@@ -246,8 +237,7 @@ const LoginPage: React.FC = () => {
                 Sign in with Discord
               </button>
               <div
-                style={{ margin: "16px 0", color: "#b39ddb", fontWeight: 500 }}
-              >
+                style={{ margin: "16px 0", color: "#b39ddb", fontWeight: 500 }}>
                 or
               </div>
               <form
@@ -258,8 +248,7 @@ const LoginPage: React.FC = () => {
                   const password = (e.currentTarget[1] as HTMLInputElement)
                     .value;
                   await signIn.email({ email, password, callbackURL });
-                }}
-              >
+                }}>
                 <input
                   type="email"
                   placeholder="Email"
@@ -295,8 +284,7 @@ const LoginPage: React.FC = () => {
                     fontWeight: 700,
                     cursor: "pointer",
                     width: "100%",
-                  }}
-                >
+                  }}>
                   Sign in with Email
                 </button>
               </form>
@@ -308,8 +296,7 @@ const LoginPage: React.FC = () => {
               fontSize: 13,
               color: "#b39ddb",
               fontStyle: "italic",
-            }}
-          >
+            }}>
             Powered by{" "}
             <span style={{ color: "#a259ff", fontWeight: 700 }}>CMP</span> ⚡
           </div>

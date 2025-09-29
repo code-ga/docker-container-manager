@@ -12,9 +12,11 @@ import { wsManager } from "./libs/websocket";
 import { userMiddleware } from "./middlewares/auth-middleware";
 import { migrateContainer } from "./utils/migration";
 import { logger } from "./utils/logger";
+import { lt } from "drizzle-orm";
 
 const PORT = process.env.PORT || 3000;
 
+console.log("DATABASE_URL:", process.env.DATABASE_URL);
 // Initialize database and create superuser if needed
 async function initializeApp() {
   try {
@@ -34,7 +36,11 @@ async function initializeApp() {
       .where(eq(table.roles.name, "superadmin"));
 
     if (superUsers.length === 0) {
-      logger.info("No superuser found. Creating initial superuser...", {}, { module: 'index', function: 'initializeApp' });
+      logger.info(
+        "No superuser found. Creating initial superuser...",
+        {},
+        { module: "index", function: "initializeApp" }
+      );
 
       // Create superuser using Better-Auth
       const superUserEmail = process.env.SUPERUSER_EMAIL || "admin@lormas.com";
@@ -67,27 +73,61 @@ async function initializeApp() {
               createdAt: new Date(),
             });
 
-            logger.info(`Superuser created successfully!`, {}, { module: 'index', function: 'initializeApp' });
-            logger.info(`Email: ${superUserEmail}`, {}, { module: 'index', function: 'initializeApp' });
-            logger.info(`Password: ${superUserPassword}`, {}, { module: 'index', function: 'initializeApp' });
-            logger.warn(`Please change the default password after first login!`, {}, { module: 'index', function: 'initializeApp' });
+            logger.info(
+              `Superuser created successfully!`,
+              {},
+              { module: "index", function: "initializeApp" }
+            );
+            logger.info(
+              `Email: ${superUserEmail}`,
+              {},
+              { module: "index", function: "initializeApp" }
+            );
+            logger.info(
+              `Password: ${superUserPassword}`,
+              {},
+              { module: "index", function: "initializeApp" }
+            );
+            logger.warn(
+              `Please change the default password after first login!`,
+              {},
+              { module: "index", function: "initializeApp" }
+            );
           }
         }
       } catch (error) {
-        logger.error("Error creating superuser", { error: error instanceof Error ? error.message : String(error) }, { module: 'index', function: 'initializeApp' });
+        logger.error(
+          "Error creating superuser",
+          { error: error instanceof Error ? error.message : String(error) },
+          { module: "index", function: "initializeApp" }
+        );
         // Continue with server startup even if superuser creation fails
       }
     } else {
-      logger.info("Superuser already exists, skipping creation", {}, { module: 'index', function: 'initializeApp' });
+      logger.info(
+        "Superuser already exists, skipping creation",
+        {},
+        { module: "index", function: "initializeApp" }
+      );
     }
   } catch (error) {
-    logger.error("Error during app initialization", { error: error instanceof Error ? error.message : String(error) }, { module: 'index', function: 'initializeApp' });
+    logger.error(
+      "Error during app initialization",
+      { error: error instanceof Error ? error.message : String(error) },
+      { module: "index", function: "initializeApp" }
+    );
     // Continue with server startup even if initialization fails
   }
 }
 
 // Initialize the app
-initializeApp().catch((error) => logger.error("Error initializing app", { error: error instanceof Error ? error.message : String(error) }, { module: 'index' }));
+initializeApp().catch((error) =>
+  logger.error(
+    "Error initializing app",
+    { error: error instanceof Error ? error.message : String(error) },
+    { module: "index" }
+  )
+);
 
 // Health monitoring interval (every 30 seconds)
 setInterval(async () => {
@@ -99,7 +139,7 @@ setInterval(async () => {
     const unhealthyNodes = await db
       .select()
       .from(table.node_health)
-      .where(sql`${table.node_health.last_heartbeat} < ${thirtySecondsAgo}`);
+      .where(lt(table.node_health.last_heartbeat, thirtySecondsAgo));
 
     for (const node of unhealthyNodes) {
       // Update node health status to unhealthy
@@ -111,7 +151,11 @@ setInterval(async () => {
         })
         .where(eq(table.node_health.node_id, node.node_id));
 
-      logger.warn(`Node ${node.node_id} marked as unhealthy`, {}, { module: 'index', function: 'healthMonitoring' });
+      logger.warn(
+        `Node ${node.node_id} marked as unhealthy`,
+        {},
+        { module: "index", function: "healthMonitoring" }
+      );
 
       // Find HA containers on this node
       const haContainers = await db
@@ -126,17 +170,25 @@ setInterval(async () => {
 
       // Trigger migration for each HA container
       for (const container of haContainers) {
-        logger.info(`Trigger migration for container ${container.id}`, {}, { module: 'index', function: 'healthMonitoring' });
+        logger.info(
+          `Trigger migration for container ${container.id}`,
+          {},
+          { module: "index", function: "healthMonitoring" }
+        );
         await migrateContainer(container.id);
       }
     }
   } catch (error) {
-    logger.error("Error in health monitoring", { error: error instanceof Error ? error.message : String(error) }, { module: 'index', function: 'healthMonitoring' });
+    logger.error(
+      "Error in health monitoring",
+      { error: error instanceof Error ? error.message : String(error) },
+      { module: "index", function: "healthMonitoring" }
+    );
   }
 }, 30000);
 
 export const app = new Elysia()
-  .get("/", () => "Hello Elysia")
+  .get("/", () => "")
   .use(cors())
   .use(
     swagger({
@@ -168,18 +220,20 @@ export const app = new Elysia()
     message(ws, message) {
       // Handle incoming WebSocket messages
       const connectionType = (ws.data?.store as any)?.connectionType;
-      if (connectionType === 'node') {
+      if (connectionType === "node") {
         const connectionId = (ws.data?.store as any)?.connectionId;
         if (connectionId) {
           // Handle both string and object messages (Bun auto-parses JSON)
-          const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
+          const messageStr =
+            typeof message === "string" ? message : JSON.stringify(message);
           wsManager.handleMessage(connectionId, messageStr);
         }
-      } else if (connectionType === 'client') {
+      } else if (connectionType === "client") {
         const userId = (ws.data?.store as any)?.userId;
         if (userId) {
           // Handle both string and object messages (Bun auto-parses JSON)
-          const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
+          const messageStr =
+            typeof message === "string" ? message : JSON.stringify(message);
           wsManager.handleClientMessage(userId, messageStr);
         }
       }
@@ -187,13 +241,13 @@ export const app = new Elysia()
     close(ws: any) {
       // Handle connection cleanup
       const connectionType = (ws as any).data?.store?.connectionType;
-      if (connectionType === 'node') {
+      if (connectionType === "node") {
         const nodeId = (ws as any).data?.store?.nodeId;
         const connectionId = (ws as any).data?.store?.connectionId;
         if (nodeId && connectionId) {
           wsManager.handleDisconnect(connectionId, nodeId);
         }
-      } else if (connectionType === 'client') {
+      } else if (connectionType === "client") {
         const userId = (ws as any).data?.store?.userId;
         if (userId) {
           wsManager.handleClientDisconnect(userId);
@@ -210,7 +264,7 @@ export const app = new Elysia()
 logger.info(
   `Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
   {},
-  { module: 'index' }
+  { module: "index" }
 );
 
 export type App = typeof app;

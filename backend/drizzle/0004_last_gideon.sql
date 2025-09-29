@@ -1,1 +1,0 @@
-ALTER TABLE "node_health" ALTER COLUMN "node_id" SET DATA TYPE text;
