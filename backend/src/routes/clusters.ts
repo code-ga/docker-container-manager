@@ -4,6 +4,7 @@ import { table } from "../database/schema";
 import { db } from "../database";
 import { eq, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { createPermissionResolve } from "../middlewares/permissions-guard";
 
 const clusterType = t.Object({
   id: t.String(),
@@ -24,6 +25,7 @@ const updateClusterType = t.Object({
 });
 
 export const clustersRouter = new Elysia({ prefix: "/clusters" })
+  .resolve(createPermissionResolve("cluster:read"))
   // GET /api/v1/clusters - List all clusters (paginated)
   .get("/", async (ctx) => {
     const { page = 1, limit = 10 } = ctx.query;
@@ -77,7 +79,9 @@ export const clustersRouter = new Elysia({ prefix: "/clusters" })
     }
   })
 
-  // POST /api/v1/clusters - Create cluster
+
+  // Write operations (POST, PUT, DELETE) - require cluster:write permission
+  .resolve(createPermissionResolve("cluster:write"))
   .post("/", async (ctx) => {
     const { name, description } = ctx.body;
 

@@ -8,6 +8,69 @@ import { createPermissionResolve } from "../middlewares/permissions-guard";
 
 export const rolesRouter = new Elysia({ prefix: "/roles" })
   .resolve(createPermissionResolve("role:read"))
+  // GET /api/v1/roles/with-permissions - Get all roles with their permissions
+  .get(
+    "/with-permissions",
+    async () => {
+      const rolesWithPermissions = await db
+        .select({
+          id: table.roles.id,
+          name: table.roles.name,
+          description: table.roles.description,
+          permissions: sql<
+            string[]
+          >`ARRAY_AGG(DISTINCT ${table.permissions.name})`,
+          createdAt: table.roles.createdAt,
+          updatedAt: table.roles.updatedAt,
+        })
+        .from(table.roles)
+        .leftJoin(
+          table.rolePermissions,
+          eq(table.roles.id, table.rolePermissions.roleId)
+        )
+        .leftJoin(
+          table.permissions,
+          eq(table.rolePermissions.permissionId, table.permissions.id)
+        )
+        .groupBy(
+          table.roles.id,
+          table.roles.name,
+          table.roles.description,
+          table.roles.createdAt,
+          table.roles.updatedAt
+        )
+        .orderBy(table.roles.name);
+
+      return {
+        status: 200,
+        message: "Roles with permissions fetched successfully",
+        success: true,
+        type: "success",
+        data: {
+          roles: rolesWithPermissions.map((role) => ({
+            ...role,
+            description: role.description ?? undefined,
+            permissions: role.permissions || [],
+            createdAt: role.createdAt.toISOString(),
+            updatedAt: role.updatedAt.toISOString(),
+          })),
+        },
+      };
+    },
+    {
+      response: {
+        200: baseResponseType(
+          t.Object({
+            roles: t.Array(t.Any()),
+          })
+        ),
+      },
+      detail: {
+        description: "Get all roles with their associated permissions",
+        tags: ["role", "permissions", "api"],
+      },
+    }
+  )
   // GET /api/v1/roles - List all roles (paginated)
   .get(
     "/",

@@ -73,6 +73,9 @@ export async function seedInitialData() {
       // Migration permissions
       { name: 'migration:*', description: 'All migration permissions' },
       { name: 'migration:manage', description: 'Manage container migrations' },
+
+      // Admin permissions
+      { name: 'admin:access', description: 'Access admin dashboard' },
     ];
 
     // Insert permissions if they don't exist
@@ -100,7 +103,7 @@ export async function seedInitialData() {
       {
         name: 'superadmin',
         description: 'Super administrator with all permissions',
-        permissions: ['user:*', 'container:*', 'node:*', 'cluster:*', 'egg:*', 'role:*', 'permission:*', 'migration:*']
+        permissions: ['user:*', 'container:*', 'node:*', 'cluster:*', 'egg:*', 'role:*', 'permission:*', 'migration:*', 'admin:access']
       },
       {
         name: 'user',

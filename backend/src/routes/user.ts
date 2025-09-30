@@ -8,6 +8,98 @@ import { randomUUID } from "crypto";
 import { createPermissionResolve } from "../middlewares/permissions-guard";
 
 export const userRouter = new Elysia({ prefix: "/user" })
+  .get(
+    "/me",
+    async (ctx) => {
+      // Get user from session
+      const session = await auth.api.getSession({
+        headers: ctx.request.headers,
+      });
+
+      if (!session?.user) {
+        return ctx.error(401, {
+          status: 401,
+          type: "error",
+          success: false,
+          message: "Unauthorized: Authentication required",
+        });
+      }
+
+      // Get user with roles
+      const userWithRoles = await db
+        .select({
+          id: table.user.id,
+          name: table.user.name,
+          email: table.user.email,
+          emailVerified: table.user.emailVerified,
+          image: table.user.image,
+          postIds: table.user.postIds,
+          roleIds: sql<string[]>`ARRAY_AGG(DISTINCT ${table.roles.id})`,
+          createdAt: table.user.createdAt,
+          updatedAt: table.user.updatedAt,
+        })
+        .from(table.user)
+        .leftJoin(table.userRoles, eq(table.user.id, table.userRoles.userId))
+        .leftJoin(table.roles, eq(table.userRoles.roleId, table.roles.id))
+        .where(eq(table.user.id, session.user.id))
+        .groupBy(
+          table.user.id,
+          table.user.name,
+          table.user.email,
+          table.user.emailVerified,
+          table.user.image,
+          table.user.postIds,
+          table.user.createdAt,
+          table.user.updatedAt
+        )
+        .limit(1);
+
+      if (!userWithRoles.length) {
+        return ctx.error(404, {
+          status: 404,
+          type: "error",
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const user = userWithRoles[0];
+      // Convert roleIds from string array to proper format
+      user.roleIds = user.roleIds || [];
+
+      return {
+        status: 200,
+        message: "Current user fetched successfully",
+        success: true,
+        type: "success",
+        data: {
+          user: user,
+        },
+      };
+    },
+    {
+      response: {
+        200: baseResponseType(t.Object({ user: userType })),
+        401: baseResponseType(t.Null()),
+        404: baseResponseType(t.Null()),
+      },
+      detail: {
+        description: "Get current user information with roles",
+        responses: {
+          200: {
+            description: "Current user fetched successfully",
+          },
+          401: {
+            description: "Unauthorized",
+          },
+          404: {
+            description: "User not found",
+          },
+        },
+        tags: ["user", "me", "api"],
+      },
+    }
+  )
   .resolve(createPermissionResolve("user:read"))
   .get(
     "/:id",

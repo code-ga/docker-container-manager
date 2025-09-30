@@ -171,6 +171,7 @@ export const apiEndpoints = {
    users: {
      list: () => apiClient.get("/user"),
      get: (id: string) => apiClient.get(`/user/${id}`),
+     me: () => apiClient.get("/user/me"),
      create: (data: unknown) => apiClient.post("/user", data),
      update: (id: string, data: unknown) => apiClient.put(`/user/${id}`, data),
      delete: (id: string) => apiClient.delete(`/user/${id}`),
@@ -178,7 +179,13 @@ export const apiEndpoints = {
 
   // Containers
   containers: {
-    list: () => apiClient.get("/containers"),
+    list: (filters?: { status?: string; nodeId?: string }) => {
+      const params = new URLSearchParams();
+      if (filters?.status) params.append('status', filters.status);
+      if (filters?.nodeId) params.append('nodeId', filters.nodeId);
+      const query = params.toString();
+      return apiClient.get(`/containers${query ? `?${query}` : ''}`);
+    },
     get: (id: string) => apiClient.get(`/containers/${id}`),
     create: (data: unknown) => apiClient.post("/containers", data),
     update: (id: string, data: unknown) =>
@@ -189,6 +196,7 @@ export const apiEndpoints = {
     restart: (id: string) => apiClient.post(`/containers/${id}/restart`),
     logs: (id: string, lines?: number) =>
       apiClient.get(`/containers/${id}/logs?lines=${lines || 100}`),
+    stats: (id: string) => apiClient.get(`/containers/${id}/stats`),
     migrate: (id: string, data: unknown) =>
       apiClient.post(`/containers/${id}/migrate`, data),
     getMigrationHistory: (id: string) =>
@@ -226,6 +234,7 @@ export const apiEndpoints = {
   // Roles
   roles: {
     list: () => apiClient.get("/roles"),
+    listWithPermissions: () => apiClient.get("/roles/with-permissions"),
     get: (id: string) => apiClient.get(`/roles/${id}`),
     create: (data: unknown) => apiClient.post("/roles", data),
     update: (id: string, data: unknown) => apiClient.put(`/roles/${id}`, data),

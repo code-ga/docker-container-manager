@@ -13,6 +13,16 @@ interface Role {
   updatedAt: string;
 }
 
+interface RolesResponse {
+  roles: Role[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
 export interface UserFormProps {
   user?: User | null; // If provided, it's edit mode; if null, it's create mode
   onSave: (data: CreateUserData | UpdateUserData) => Promise<void>;
@@ -68,7 +78,7 @@ export const UserForm: React.FC<UserFormProps> = ({
       try {
         const response = await apiEndpoints.roles.list();
         if (response.success && response.data) {
-          setRoles((response.data as any).roles);
+          setRoles((response.data as RolesResponse).roles);
         }
       } catch (error) {
         console.error('Failed to fetch roles:', error);

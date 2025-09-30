@@ -1,4 +1,4 @@
-import { openAPI } from 'better-auth/plugins'
+// import { openAPI } from 'better-auth/plugins'
 import { auth } from './auth'
 
 let _schema: ReturnType<typeof auth.api.generateOpenAPISchema>

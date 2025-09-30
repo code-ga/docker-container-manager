@@ -2,11 +2,11 @@ import Elysia, { Static, t } from "elysia";
 import { baseResponseType } from "../types";
 import { table } from "../database/schema";
 import { db } from "../database";
-import { eq, desc, sql, and, or } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import { hasPermission } from "../permissions";
 import { randomUUID } from "crypto";
 import { wsManager } from "../libs/websocket";
-import { userMiddleware } from "../middlewares/auth-middleware";
+import { createPermissionResolve } from "../middlewares/permissions-guard";
 
 // Container type definitions
 const containerType = t.Object({
@@ -110,7 +110,7 @@ async function checkContainerOwnership(
 }
 
 export const containersRouter = new Elysia({ prefix: "/containers" })
-  .resolve(userMiddleware)
+  .resolve(createPermissionResolve("container:read"))
   // GET /api/v1/containers - List containers (own or all if manage perm)
   .get(
     "/",
@@ -128,13 +128,13 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
       const user = ctx.user;
 
       // Check if user has manage permission to see all containers
-      const hasManagePerm = await hasPermission(user.id, "container:manage");
+      const hasManagePerm = await hasPermission((user as any).id, "container:manage");
 
       // Build where conditions
       const whereConditions = [];
       if (!hasManagePerm) {
         // Only show user's own containers
-        whereConditions.push(eq(table.containers.userId, user.id));
+        whereConditions.push(eq(table.containers.userId, (user as any).id));
       } else {
         // Admin can filter by user if specified
         if (filterUserId) {
@@ -252,8 +252,8 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
           requiredPermission = "container:ha:create";
         }
 
-        const hasCreatePerm = await hasPermission(user.id, requiredPermission);
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
+        const hasCreatePerm = await hasPermission((user as any).id, requiredPermission);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
 
         if (!hasCreatePerm && !hasManagePerm) {
           return ctx.error(403, {
@@ -321,7 +321,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
           .where(
             and(
               eq(table.containers.name, name),
-              eq(table.containers.userId, user.id)
+              eq(table.containers.userId, (user as any).id)
             )
           )
           .limit(1);
@@ -341,7 +341,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         // Create container with egg defaults + overrides
         const containerData: any = {
           id: randomUUID(),
-          userId: user.id,
+          userId: (user as any).id,
           eggId,
           nodeId,
           name,
@@ -422,11 +422,11 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
 
       try {
         // Get user from context (set by guard middleware)
-        const user = ctx.user;
+        const user = ctx.user as any;
 
         // Check ownership or manage permission
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const ownsContainer = await checkContainerOwnership(user.id, id);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
 
         if (!ownsContainer && !hasManagePerm) {
           return ctx.error(403, {
@@ -546,11 +546,11 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
 
       try {
         // Get user from context (set by guard middleware)
-        const user = ctx.user;
+        const user = ctx.user as any;
 
         // Check ownership or manage permission
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const ownsContainer = await checkContainerOwnership(user.id, id);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
 
         if (!ownsContainer && !hasManagePerm) {
           return ctx.error(403, {
@@ -625,8 +625,8 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         const user = ctx.user;
 
         // Check ownership or manage permission
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const ownsContainer = await checkContainerOwnership(user.id, id);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
 
         if (!ownsContainer && !hasManagePerm) {
           return ctx.error(403, {
@@ -737,8 +737,8 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         const user = ctx.user;
 
         // Check ownership or manage permission
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const ownsContainer = await checkContainerOwnership(user.id, id);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
 
         if (!ownsContainer && !hasManagePerm) {
           return ctx.error(403, {
@@ -834,8 +834,8 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         const user = ctx.user;
 
         // Check ownership or manage permission
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const ownsContainer = await checkContainerOwnership(user.id, id);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
 
         if (!ownsContainer && !hasManagePerm) {
           return ctx.error(403, {
@@ -863,33 +863,34 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
           });
         }
 
-        // Update container status to stopping then starting
+        // Update container status to restarting
         await db
           .update(table.containers)
           .set({
-            status: "stopping",
+            status: "restarting",
             updatedAt: sql`now()`,
           })
           .where(eq(table.containers.id, id));
 
-        // Stub: Send stop command to node agent
-        console.log(
-          `Command sent to node ${existingContainer[0].nodeId} for container ${id}: STOP`
+        // Send restart command to node agent via WebSocket
+        const restartCommandSent = await wsManager.sendToNode(
+          existingContainer[0].nodeId,
+          {
+            type: "command",
+            action: "restart",
+            containerId: existingContainer[0].uuid,
+          }
         );
 
-        // Update to starting
-        await db
-          .update(table.containers)
-          .set({
-            status: "starting",
-            updatedAt: sql`now()`,
-          })
-          .where(eq(table.containers.id, id));
-
-        // Stub: Send start command to node agent
-        console.log(
-          `Command sent to node ${existingContainer[0].nodeId} for container ${id}: START`
-        );
+        if (!restartCommandSent) {
+          ctx.set.status = 500;
+          return {
+            status: 500,
+            type: "error",
+            success: false,
+            message: "Failed to send restart command to node agent",
+          };
+        }
 
         // Fetch updated container
         const updatedContainer = await db
@@ -946,8 +947,8 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         const user = ctx.user;
 
         // Check ownership or manage permission
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const ownsContainer = await checkContainerOwnership(user.id, id);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
 
         if (!ownsContainer && !hasManagePerm) {
           return ctx.error(403, {
@@ -995,11 +996,11 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
           .select({
             id: table.logs.id,
             containerUuid: table.logs.containerUuid,
-            nodeId: sql<string | null>`${table.logs.nodeId}::text`,
-            timestamp: sql<string>`${table.logs.timestamp}::text`,
+            nodeId: table.logs.nodeId,
+            timestamp: table.logs.timestamp,
             message: table.logs.message,
             level: table.logs.level,
-            createdAt: sql<string>`${table.logs.createdAt}::text`
+            createdAt: table.logs.createdAt
           })
           .from(table.logs)
           .where(whereClause)
@@ -1018,7 +1019,11 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
           success: true,
           type: "success",
           data: {
-            logs: logs,
+            logs: logs.map(log => ({
+              ...log,
+              createdAt: log.createdAt.toISOString(),
+              timestamp: log.timestamp.toISOString()
+            })),
             pagination: {
               page: 1,
               limit: Number(limit),
@@ -1079,6 +1084,119 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
     }
   )
 
+  // GET /api/v1/containers/:id/stats - Get container statistics
+  .get(
+    "/:id/stats",
+    async (ctx) => {
+      const { id } = ctx.params;
+
+      try {
+        // Get user from context
+        const user = ctx.user;
+
+        // Check ownership or read permission
+        const hasReadPerm = await hasPermission((user as any).id, "container:read");
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
+
+        if (!ownsContainer && !hasReadPerm && !hasManagePerm) {
+          return ctx.error(403, {
+            status: 403,
+            type: "error",
+            success: false,
+            message:
+              "Forbidden: You don't own this container and don't have read or manage permission",
+          });
+        }
+
+        // Check if container exists
+        const existingContainer = await db
+          .select()
+          .from(table.containers)
+          .where(eq(table.containers.id, id))
+          .limit(1);
+
+        if (!existingContainer.length) {
+          return ctx.error(404, {
+            status: 404,
+            type: "error",
+            success: false,
+            message: "Container not found",
+          });
+        }
+
+        // Send stats command to node agent via WebSocket
+        const statsResult = await wsManager.sendToNode(
+          existingContainer[0].nodeId,
+          {
+            type: "command",
+            action: "stats",
+            containerId: existingContainer[0].uuid,
+          }
+        );
+
+        if (!statsResult) {
+          return ctx.error(500, {
+            status: 500,
+            type: "error",
+            success: false,
+            message: "Failed to send stats command to node agent",
+          });
+        }
+
+        // Parse stats result and format response
+        const statsData = statsResult || {};
+
+        return {
+          status: 200,
+          message: "Stats retrieved",
+          success: true,
+          type: "success",
+          data: {
+            cpu: statsData.cpu || 0,
+            memory: {
+              used: statsData.memoryUsed || 0,
+              total: statsData.memoryTotal || 0,
+            },
+            uptime: statsData.uptime || 0,
+          },
+        };
+      } catch (error: any) {
+        return ctx.error(400, {
+          status: 400,
+          type: "error",
+          success: false,
+          message: error.message || "Failed to retrieve container stats",
+        });
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      response: {
+        200: baseResponseType(
+          t.Object({
+            cpu: t.Number(),
+            memory: t.Object({
+              used: t.Number(),
+              total: t.Number(),
+            }),
+            uptime: t.Number(),
+          })
+        ),
+        404: baseResponseType(t.Null()),
+        403: baseResponseType(t.Null()),
+        500: baseResponseType(t.Null()),
+        400: baseResponseType(t.Null()),
+      },
+      detail: {
+        description: "Get container statistics including CPU, memory usage, and uptime",
+        tags: ["container", "stats", "monitoring", "api"],
+      },
+    }
+  )
+
   // POST /api/v1/containers/:id/assign/:nodeId - Reassign container to different node
   .post(
     "/:id/assign/:nodeId",
@@ -1090,8 +1208,8 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         const user = ctx.user;
 
         // Check ownership or manage permission
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const ownsContainer = await checkContainerOwnership(user.id, id);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
 
         if (!ownsContainer && !hasManagePerm) {
           return ctx.error(403, {
@@ -1217,8 +1335,8 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         const user = ctx.user;
 
         // Check ownership or manage permission
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const ownsContainer = await checkContainerOwnership(user.id, id);
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const ownsContainer = await checkContainerOwnership((user as any).id, id);
 
         if (!ownsContainer && !hasManagePerm) {
           return ctx.error(403, {
@@ -1314,8 +1432,8 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         const user = ctx.user;
 
         // Check if user has permission to view node health
-        const hasManagePerm = await hasPermission(user.id, "container:manage");
-        const hasNodeReadPerm = await hasPermission(user.id, "node:read");
+        const hasManagePerm = await hasPermission((user as any).id, "container:manage");
+        const hasNodeReadPerm = await hasPermission((user as any).id, "node:read");
 
         if (!hasManagePerm && !hasNodeReadPerm) {
           return ctx.error(403, {
@@ -1411,7 +1529,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
         const user = ctx.user;
 
         // Check if user has migration management permission
-        const hasMigrationPerm = await hasPermission(user.id, "migration:manage");
+        const hasMigrationPerm = await hasPermission((user as any).id, "migration:manage");
 
         if (!hasMigrationPerm) {
           return ctx.error(403, {

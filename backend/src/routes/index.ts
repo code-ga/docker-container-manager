@@ -4,6 +4,7 @@ import { createPermissionResolve } from "../middlewares/permissions-guard";
 import { clustersRouter } from "./clusters";
 import { containersRouter } from "./containers";
 import { eggsRouter } from "./eggs";
+import { logsRouter } from "./logs";
 import { nodesRouter } from "./nodes";
 import { rolesRouter } from "./roles";
 import { userRouter } from "./user";
@@ -75,6 +76,10 @@ const apiRouter = new Elysia({
 
   // Container management routes - requires container management permissions
   .resolve(createPermissionResolve("container:manage"))
-  .use(containersRouter);
+  .use(containersRouter)
+
+  // Logs routes - requires user authentication
+  .resolve(createPermissionResolve("container:read"))
+  .use(logsRouter);
 
 export default apiRouter;

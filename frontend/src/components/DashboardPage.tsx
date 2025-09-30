@@ -1,8 +1,15 @@
+import DashboardLayout from './layout/DashboardLayout';
+import { OverviewSection } from './OverviewSection';
+import { RecentActivity } from './RecentActivity';
+
 const DashboardPage = () => {
   return (
-    <div>
-      <h1>Dashboard</h1>
-    </div>
+    <DashboardLayout>
+      <div className="space-y-8">
+        <OverviewSection />
+        <RecentActivity />
+      </div>
+    </DashboardLayout>
   );
 };
 

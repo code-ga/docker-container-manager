@@ -1,27 +1,27 @@
 import React from 'react';
 import {
-   Navigate,
-   Route,
-   Routes,
-   Outlet,
- } from "react-router-dom";
+    Navigate,
+    Route,
+    Routes,
+    Outlet,
+  } from "react-router-dom";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthProvider } from "./components/AuthProvider";
+import { PermissionsProvider } from "./contexts/PermissionsContext";
 import { DarkThemeProvider } from "./components/providers/DarkThemeProvider";
 import { AnimeWrapper } from "./components/providers/AnimeWrapper";
 import { ToastProvider } from "./components/ToastProvider";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import LoginPage from "./components/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import DashboardRoutes from "./components/DashboardRoutes";
 import UserSettingsPage from "./components/UserSettingsPage";
 import UsersPage from "./pages/Settings/UsersPage";
 import RolesPage from "./pages/Settings/RolesPage";
-
-// Placeholder components for routes that will be implemented later
-const DashboardPage = () => <div className="text-white">Dashboard Overview</div>;
-const NodesPage = () => <div className="text-white">Nodes Management</div>;
-const ClustersPage = () => <div className="text-white">Clusters Management</div>;
-const EggsPage = () => <div className="text-white">Eggs Management</div>;
-const ContainersPage = () => <div className="text-white">Containers Management</div>;
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<
@@ -80,13 +80,24 @@ const NotFound = () => (
   </div>
 );
 
+// Create QueryClient instance with default options
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes for lists
+    },
+  },
+});
+
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <DarkThemeProvider>
-          <AnimeWrapper>
-            <ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <PermissionsProvider>
+            <DarkThemeProvider>
+              <AnimeWrapper>
+                <ToastProvider>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Navigate to="/login" replace />} />
@@ -95,19 +106,7 @@ function App() {
 
                 {/* Protected Dashboard Routes */}
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/dashboard" element={
-                    <DashboardLayout>
-                      <Outlet />
-                    </DashboardLayout>
-                  }>
-                    <Route index element={<DashboardPage />} />
-                    <Route path="users" element={<UsersPage />} />
-                    <Route path="nodes" element={<NodesPage />} />
-                    <Route path="clusters" element={<ClustersPage />} />
-                    <Route path="eggs" element={<EggsPage />} />
-                    <Route path="containers" element={<ContainersPage />} />
-                    <Route path="admin" element={<DashboardPage />} />
-                  </Route>
+                  <Route path="/dashboard/*" element={<DashboardRoutes />} />
                 </Route>
 
                 {/* Protected Settings Routes */}
@@ -126,10 +125,13 @@ function App() {
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </ToastProvider>
-          </AnimeWrapper>
-        </DarkThemeProvider>
+              </ToastProvider>
+            </AnimeWrapper>
+          </DarkThemeProvider>
+        </PermissionsProvider>
       </AuthProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
     </ErrorBoundary>
   );
 }

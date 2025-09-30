@@ -4,6 +4,7 @@ import { table } from "../database/schema";
 import { db } from "../database";
 import { eq, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { createPermissionResolve } from "../middlewares/permissions-guard";
 
 const nodeType = t.Object({
   id: t.String(),
@@ -38,8 +39,10 @@ const updateNodeType = t.Object({
 });
 
 export const nodesRouter = new Elysia({ prefix: "/nodes" })
+  .resolve(createPermissionResolve("node:read"))
   // GET /api/v1/nodes - List all nodes (paginated, optional cluster filter)
   .get("/", async (ctx) => {
+
     const { page = 1, limit = 10, clusterId } = ctx.query;
     const offset = (page - 1) * limit;
 
@@ -96,7 +99,9 @@ export const nodesRouter = new Elysia({ prefix: "/nodes" })
     }
   })
 
-  // POST /api/v1/nodes - Create node
+
+  // Write operations (POST, PUT, DELETE) - require node:write permission
+  .resolve(createPermissionResolve("node:write"))
   .post("/", async (ctx) => {
     const { name, fqdn, clusterId } = ctx.body;
 
@@ -145,6 +150,7 @@ export const nodesRouter = new Elysia({ prefix: "/nodes" })
       }).returning();
 
       // Return node without token for security
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: _, ...nodeWithoutToken } = newNode[0];
 
       return {
@@ -238,6 +244,7 @@ export const nodesRouter = new Elysia({ prefix: "/nodes" })
         .limit(1);
 
       // Return node without token for security
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: _, ...nodeWithoutToken } = updatedNode[0];
 
       return {
@@ -391,6 +398,7 @@ export const nodesRouter = new Elysia({ prefix: "/nodes" })
         .limit(1);
 
       // Return node without token for security
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: _, ...nodeWithoutToken } = updatedNode[0];
 
       return {

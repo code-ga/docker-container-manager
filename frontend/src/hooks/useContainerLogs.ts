@@ -227,7 +227,7 @@ export const useContainerLogs = ({
     initSocket();
 
     return cleanup;
-  }, [enabled, containerId, handleConnect, handleDisconnect, handleError, handleLogMessage, cleanup]);
+  }, [enabled, containerId, handleConnect, handleDisconnect, handleError, handleLogMessage, handleStdinResultMessage, cleanup]);
 
   useEffect(() => {
     if (!isConnected && enabled) {

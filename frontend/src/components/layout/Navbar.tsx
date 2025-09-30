@@ -1,7 +1,8 @@
-import { CircleUser, PlusCircle } from "lucide-react";
+import { CircleUser, PlusCircle, Container } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "../../lib/auth";
+import { usePermissions } from "../../hooks/usePermissions";
 import LoadingPage from "../LoadingPage";
 import "./Navbar.css";
 
@@ -9,10 +10,13 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { data, isPending } = useSession();
+  const { hasPermission } = usePermissions();
+
   if (isPending) {
     return <LoadingPage></LoadingPage>;
   }
   const isLoginPage = location.pathname === "/login";
+  const canManageContainers = hasPermission('containers:write');
 
   return (
     <nav className="flex items-center justify-between px-4 py-2.5 text-white shadow-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 animate-navbar-fade">
@@ -39,15 +43,31 @@ const Navbar = () => {
           >
             Admin Dashboard
           </motion.button>
-          <motion.button
-            className="p-2 text-pink-200 bg-transparent rounded-full bg-opacity-20 shadow-anime focus:outline-none focus:ring-2 focus:ring-pink-300"
-            title="Create Container"
-            onClick={() => alert("Create Container!")}
-            whileHover={{ scale: 1.1, rotateY: 5 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <PlusCircle className="h-7 w-7" />
-          </motion.button>
+
+          {/* Container Navigation */}
+          <Link to="/dashboard/containers">
+            <motion.button
+              className="p-2 text-pink-200 bg-transparent rounded-full bg-opacity-20 shadow-anime focus:outline-none focus:ring-2 focus:ring-pink-300 hover:text-white"
+              title="Containers"
+              whileHover={{ scale: 1.1, rotateY: 5 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <Container className="h-7 w-7" />
+            </motion.button>
+          </Link>
+
+          {canManageContainers && (
+            <Link to="/dashboard/containers/create">
+              <motion.button
+                className="p-2 text-pink-200 bg-transparent rounded-full bg-opacity-20 shadow-anime focus:outline-none focus:ring-2 focus:ring-pink-300 hover:text-white"
+                title="Create Container"
+                whileHover={{ scale: 1.1, rotateY: 5 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <PlusCircle className="h-7 w-7" />
+              </motion.button>
+            </Link>
+          )}
           <div className="relative group">
             <motion.div
               className="cursor-pointer"

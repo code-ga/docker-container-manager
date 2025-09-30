@@ -1,8 +1,9 @@
 import { db } from "../database";
 import { table } from "../database/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { auth } from "../libs/auth/auth";
 import { logger } from "../utils/logger";
+import { checkContainerAssignment } from "../utils";
 import {
   LogMessage,
   SubscribeMessage,
@@ -212,6 +213,11 @@ class WebSocketManager {
 
       if (!session) {
         ws.close(1008, "Invalid authentication");
+        return;
+      }
+
+      if (!session.user) {
+        ws.close(1008, "Invalid session");
         return;
       }
 
@@ -440,7 +446,7 @@ class WebSocketManager {
       // Check ownership or assignment
       const hasAccess =
         container[0].userId === userId ||
-        (await this.checkContainerAssignment(userId, container[0].id));
+        (await checkContainerAssignment(userId, container[0].id));
 
       if (!hasAccess) {
         this.sendToClient(userId, {
@@ -535,7 +541,7 @@ class WebSocketManager {
       // Check ownership or assignment
       const hasAccess =
         container[0].userId === userId ||
-        (await this.checkContainerAssignment(userId, container[0].id));
+        (await checkContainerAssignment(userId, container[0].id));
 
       if (!hasAccess) {
         this.sendToClient(userId, {
@@ -613,24 +619,6 @@ class WebSocketManager {
     }
   }
 
-  // Check if user has assignment to container
-  private async checkContainerAssignment(
-    userId: string,
-    containerId: string
-  ): Promise<boolean> {
-    const assignment = await db
-      .select()
-      .from(table.userContainerAssignments)
-      .where(
-        and(
-          eq(table.userContainerAssignments.userId, userId),
-          eq(table.userContainerAssignments.containerId, containerId)
-        )
-      )
-      .limit(1);
-
-    return assignment.length > 0;
-  }
 
   // Handle client disconnect
   public async handleClientDisconnect(userId: string): Promise<void> {

@@ -33,12 +33,16 @@ export interface CommandResult {
   message?: string;
   logs?: string[];
   action?: string;
+  cpu?: number;
+  memoryUsed?: number;
+  memoryTotal?: number;
+  uptime?: number;
 }
 
 export interface CommandMessage extends WebSocketMessage {
   type: 'command';
   id?: string;
-  action: 'create' | 'start' | 'stop' | 'restart' | 'delete' | 'logs' | 'stdin';
+  action: 'create' | 'start' | 'stop' | 'restart' | 'delete' | 'logs' | 'stdin' | 'stats';
   containerId: string;
   eggConfig?: EggConfig;
   resources?: ResourceConfig;

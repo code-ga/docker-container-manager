@@ -17,6 +17,10 @@ export const useToast = () => {
     return `toast-${++toastId}`;
   }, []);
 
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
+
   const addToast = useCallback((type: Toast['type'], title: string, message?: string, duration = 5000) => {
     const id = generateId();
     const toast: Toast = {
@@ -37,11 +41,7 @@ export const useToast = () => {
     }
 
     return id;
-  }, [generateId]);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+  }, [generateId, removeToast]);
 
   const showSuccess = useCallback((title: string, message?: string) => {
     return addToast('success', title, message);

@@ -4,29 +4,28 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Server,
-  Shield,
-  Activity,
-  HardDrive,
-  Cpu,
-  Zap,
   Loader2,
   RefreshCw,
   History,
+  Shield,
+  Cpu,
+  Activity,
+  HardDrive,
+  Zap,
   CheckCircle,
-  XCircle,
-  Terminal,
-  Send
+  XCircle
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { MigrationStatus } from '../../components/entities/MigrationStatus';
 import { ManualMigrate } from '../../components/entities/ManualMigrate';
 import { MigrationHistoryTable } from '../../components/entities/MigrationHistoryTable';
-import { useContainerLogs } from '../../hooks/useContainerLogs';
 import { useContainerHA } from '../../hooks/useContainerHA';
 import { apiEndpoints } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import { ContainerTabs } from '../../components/entities/ContainerTabs';
 
 interface Container {
   id: string;
@@ -46,28 +45,16 @@ interface Container {
 }
 
 
-const DetailContainer = () => {
+const ContainerDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [container, setContainer] = useState<Container | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [stdinInput, setStdinInput] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
 
-  // Use the container logs hook for real-time logs
-  const {
-    logs,
-    isConnected,
-    isReconnecting,
-    error: logsError,
-    clearLogs,
-    sendStdin
-  } = useContainerLogs({
-    containerId: id || '',
-    enabled: !!id,
-    maxLogs: 200
-  });
+  // Note: Logs are now handled by the LogsTab component via useWebSocket hook
 
   // Use the container HA hook for real-time HA updates
   const {
@@ -156,38 +143,29 @@ const DetailContainer = () => {
     }
   };
 
-  const handleSendStdin = () => {
-    if (!stdinInput.trim()) {
-      toast.error('Please enter some input to send');
-      return;
-    }
-
-    const success = sendStdin(stdinInput);
-    if (success) {
-      setStdinInput('');
-      toast.success('Input sent to container');
-    }
-  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-neon-blue" />
-          <p className="text-gray-400">Loading container details...</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-neon-blue" />
+            <p className="text-gray-400">Loading container details...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (!container) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="text-center">
-          <XCircle className="w-8 h-8 mx-auto mb-4 text-red-500" />
-          <p className="text-gray-400">Container not found</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-gray-400">Container not found</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -226,8 +204,8 @@ const DetailContainer = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="container px-4 py-8 mx-auto">
+    <DashboardLayout>
+      <div className="space-y-6">
         {/* Header */}
         <motion.div
           className="mb-8"
@@ -273,6 +251,13 @@ const DetailContainer = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Container Tabs */}
+        <ContainerTabs
+          container={container}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content */}
@@ -442,122 +427,6 @@ const DetailContainer = () => {
               </div>
             </div>
 
-            {/* Live Logs */}
-            <div className="p-6 bg-white border border-gray-200 shadow-xl dark:bg-gray-800 rounded-xl dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Live Logs
-                  </span>
-                  {isConnected && (
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-xs text-green-600 dark:text-green-400">Connected</span>
-                    </div>
-                  )}
-                  {isReconnecting && (
-                    <div className="flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 text-yellow-500 animate-spin" />
-                      <span className="text-xs text-yellow-600 dark:text-yellow-400">Reconnecting</span>
-                    </div>
-                  )}
-                  {logsError && (
-                    <span className="text-xs text-red-600 dark:text-red-400">Error</span>
-                  )}
-                </div>
-                <button
-                  onClick={clearLogs}
-                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  Clear
-                </button>
-              </div>
-
-              <div className="p-4 overflow-y-auto bg-gray-900 rounded-lg max-h-96">
-                {logs.length === 0 ? (
-                  <p className="py-8 text-center text-gray-400">
-                    No logs available. Logs will appear here when the container is running.
-                  </p>
-                ) : (
-                  <div className="space-y-1 font-mono text-sm">
-                    {logs.map((log) => (
-                      <motion.div
-                        key={log.id}
-                        className={cn(
-                          'px-2 py-1 rounded',
-                          log.level === 'error' && 'bg-red-900/30 text-red-300',
-                          log.level === 'warn' && 'bg-yellow-900/30 text-yellow-300',
-                          log.level === 'info' && 'text-gray-300',
-                          log.level === 'debug' && 'text-blue-300'
-                        )}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                      >
-                        <span className="text-gray-500">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                        </span>{' '}
-                        <span className="text-gray-400">[{log.level.toUpperCase()}]</span>{' '}
-                        <span>{log.message}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Stdin Input Section */}
-            {container.status === 'running' && (
-              <div className="p-6 bg-white border border-gray-200 shadow-xl dark:bg-gray-800 rounded-xl dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-4">
-                  <Terminal className="w-5 h-5 text-neon-blue" />
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Send Input
-                  </h2>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Command Input
-                    </label>
-                    <textarea
-                      value={stdinInput}
-                      onChange={(e) => setStdinInput(e.target.value)}
-                      placeholder="Enter commands to send to the container..."
-                      className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 transition-all duration-200 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-blue focus:border-neon-blue dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 resize-vertical"
-                      rows={4}
-                      disabled={!isConnected}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {isConnected ? (
-                        <span className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full" />
-                          Ready to send input
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-gray-400">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                          Waiting for connection...
-                        </span>
-                      )}
-                    </div>
-
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={handleSendStdin}
-                      leftIcon={<Send className="w-4 h-4" />}
-                      disabled={!isConnected || !stdinInput.trim()}
-                    >
-                      Send Input
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </motion.div>
 
           {/* Sidebar */}
@@ -630,17 +499,7 @@ const DetailContainer = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Container Logs:</span>
                   <div className="flex items-center gap-2">
-                    {isConnected ? (
-                      <>
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-sm text-green-600 dark:text-green-400">Connected</span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-4 h-4 text-red-500" />
-                        <span className="text-sm text-red-600 dark:text-red-400">Disconnected</span>
-                      </>
-                    )}
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Managed by Logs Tab</span>
                   </div>
                 </div>
 
@@ -696,8 +555,8 @@ const DetailContainer = () => {
           />
         </Modal>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
-export default DetailContainer;
+export default ContainerDetailPage;

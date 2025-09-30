@@ -1,120 +1,92 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Server, Shield } from 'lucide-react';
+import { ArrowLeft, Server, Plus, X, Cpu, HardDrive, Database } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { FormBuilder, type FormField } from '../../components/data/FormBuilder';
-import { apiEndpoints } from '../../lib/api';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useEggs, useNodes, type Egg, type Node } from '../../hooks/useEntities';
+import { useCreateContainer, type CreateContainerData } from '../../hooks/useContainers';
 import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
 
-interface Cluster {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-interface Egg {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-interface CreateContainerFormData {
-  name: string;
-  eggId: string;
-  environment: Record<string, string>;
-  cpuLimit: number;
-  memoryLimit: number;
-  diskLimit: number;
-  ports: Record<string, number>;
-  enableHA: boolean;
-  preferredClusterId?: string;
+interface EnvironmentVar {
+  key: string;
+  value: string;
 }
 
 const CreateContainer = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [clusters, setClusters] = useState<Cluster[]>([]);
-  const [eggs, setEggs] = useState<Egg[]>([]);
-  const [formData, setFormData] = useState<CreateContainerFormData>({
-    name: '',
-    eggId: '',
-    environment: {},
-    cpuLimit: 1,
-    memoryLimit: 512,
-    diskLimit: 1024,
-    ports: {},
-    enableHA: false,
-    preferredClusterId: ''
-  });
+  const [selectedEgg, setSelectedEgg] = useState<Egg | null>(null);
+  const [environmentVars, setEnvironmentVars] = useState<EnvironmentVar[]>([
+    { key: '', value: '' }
+  ]);
 
-  // Fetch clusters and eggs on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [clustersResponse, eggsResponse] = await Promise.all([
-          apiEndpoints.clusters.list(),
-          apiEndpoints.eggs.list()
-        ]);
+  // Check permissions - simplified for now, assuming admin access
+  const hasPermission = true; // TODO: Implement proper permission checking
 
-        if (clustersResponse.success) {
-          setClusters(clustersResponse.data as Cluster[]);
-        }
+  // Fetch data
+  const { data: eggs = [] } = useEggs() as { data: Egg[] };
+  const { data: nodes = [] } = useNodes() as { data: Node[] };
 
-        if (eggsResponse.success) {
-          setEggs(eggsResponse.data as Egg[]);
-        }
-      } catch (error) {
-        toast.error('Failed to load data');
-        console.error('Error fetching data:', error);
+  // Create container mutation
+  const createContainerMutation = useCreateContainer();
+
+  // Add new environment variable
+  const addEnvironmentVar = () => {
+    setEnvironmentVars([...environmentVars, { key: '', value: '' }]);
+  };
+
+  // Remove environment variable
+  const removeEnvironmentVar = (index: number) => {
+    setEnvironmentVars(environmentVars.filter((_, i) => i !== index));
+  };
+
+  // Update environment variable
+  const updateEnvironmentVar = (index: number, field: 'key' | 'value', value: string) => {
+    const updated = [...environmentVars];
+    updated[index][field] = value;
+    setEnvironmentVars(updated);
+  };
+
+  // Convert environment vars to record
+  const getEnvironmentRecord = (): Record<string, string> => {
+    return environmentVars.reduce((acc, env) => {
+      if (env.key.trim()) {
+        acc[env.key.trim()] = env.value;
       }
-    };
-
-    fetchData();
-  }, []);
+      return acc;
+    }, {} as Record<string, string>);
+  };
 
   const handleSubmit = async (data: Record<string, unknown>) => {
-    setIsLoading(true);
+    if (!hasPermission) {
+      toast.error('You do not have permission to create containers');
+      return;
+    }
+
     try {
-      const containerData = {
-        ...data,
-        type: formData.enableHA ? 'ha' : 'standard',
-        preferredClusterId: formData.enableHA ? formData.preferredClusterId : undefined
+      const containerData: CreateContainerData = {
+        name: data.name as string,
+        eggId: data.eggId as string,
+        nodeId: (data.nodeIds as string[])[0] || nodes[0]?.id || '', // Use first selected node or first available
+        environment: getEnvironmentRecord(),
+        resources: {
+          cpu: data.cpuLimit as number,
+          memory: `${data.memoryLimit}MB`,
+          disk: `${data.diskLimit}MB`
+        }
       };
 
-      const response = await apiEndpoints.containers.create(containerData);
-
-      if (response.success) {
-        toast.success('Container created successfully!');
-        navigate('/dashboard/containers');
-      } else {
-        toast.error(response.message || 'Failed to create container');
-      }
+      await createContainerMutation.mutateAsync(containerData);
+      navigate('/containers');
     } catch (error) {
-      toast.error('Failed to create container');
+      // Error handling is done in the mutation
       console.error('Error creating container:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleHAToggle = (enabled: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      enableHA: enabled,
-      preferredClusterId: enabled ? prev.preferredClusterId : ''
-    }));
-  };
-
-  const handleClusterSelect = (clusterId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      preferredClusterId: clusterId
-    }));
-  };
-
-  const baseFields: FormField[] = [
+  const fields: FormField[] = [
     {
       name: 'name',
       label: 'Container Name',
@@ -129,6 +101,14 @@ const CreateContainer = () => {
       required: true,
       placeholder: 'Select an egg configuration',
       options: eggs.map(egg => egg.name)
+    },
+    {
+      name: 'nodeIds',
+      label: 'Node Assignment',
+      type: 'select',
+      required: true,
+      placeholder: 'Select nodes',
+      options: nodes.map(node => node.name)
     },
     {
       name: 'cpuLimit',
@@ -153,39 +133,38 @@ const CreateContainer = () => {
       required: true,
       placeholder: '1024',
       validation: { min: 100, max: 1048576 }
-    },
-    {
-      name: 'environment',
-      label: 'Environment Variables',
-      type: 'json',
-      required: false,
-      placeholder: 'Enter environment variables as JSON'
-    },
-    {
-      name: 'ports',
-      label: 'Port Mappings',
-      type: 'json',
-      required: false,
-      placeholder: 'Enter port mappings as JSON'
     }
   ];
 
-  const haFields: FormField[] = formData.enableHA ? [
-    {
-      name: 'preferredClusterId',
-      label: 'Preferred Cluster',
-      type: 'select',
-      required: true,
-      placeholder: 'Select a cluster for HA deployment',
-      options: clusters.map(cluster => cluster.name)
+  // Update selected egg when eggId changes
+  useEffect(() => {
+    const egg = eggs.find(egg => egg.name === selectedEgg?.name);
+    if (egg) {
+      setSelectedEgg(egg);
     }
-  ] : [];
+  }, [eggs, selectedEgg?.name]);
 
-  const allFields = [...baseFields, ...haFields];
+  if (!hasPermission) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Server className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
+              Access Denied
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              You don't have permission to create containers.
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="container px-4 py-8 mx-auto">
+    <DashboardLayout>
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
           className="mb-8"
@@ -195,7 +174,7 @@ const CreateContainer = () => {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => navigate('/dashboard/containers')}
+            onClick={() => navigate('/containers')}
             leftIcon={<ArrowLeft className="w-4 h-4" />}
             className="mb-4"
           >
@@ -203,10 +182,12 @@ const CreateContainer = () => {
           </Button>
 
           <div className="flex items-center gap-3 mb-2">
-            <Server className="w-8 h-8 text-neon-blue" />
-            <h1 className="text-3xl font-bold text-white">Create Container</h1>
+            <Server className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Create Container
+            </h1>
           </div>
-          <p className="text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400">
             Deploy a new container with your chosen configuration
           </p>
         </motion.div>
@@ -219,83 +200,83 @@ const CreateContainer = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div className="p-6 bg-white border border-gray-200 shadow-xl dark:bg-gray-800 rounded-xl dark:border-gray-700">
-              {/* HA Toggle */}
-              <div className="p-4 mb-6 border rounded-lg bg-gradient-to-r from-neon-blue/10 to-neon-purple/10 border-neon-blue/20">
-                <div className="flex items-center gap-3 mb-3">
-                  <Shield className="w-5 h-5 text-neon-blue" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    High Availability
-                  </h3>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.enableHA}
-                      onChange={(e) => handleHAToggle(e.target.checked)}
-                      className="w-4 h-4 bg-gray-100 border-gray-300 rounded text-neon-blue focus:ring-neon-blue focus:ring-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Enable High Availability
-                    </span>
-                  </label>
-                </div>
-
-                {formData.enableHA && (
-                  <motion.div
-                    className="mt-4"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                  >
-                    <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
-                      Select a cluster for high availability deployment. The container will be automatically migrated between nodes for optimal performance and reliability.
-                    </p>
-
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      {clusters.map((cluster) => (
-                        <motion.div
-                          key={cluster.id}
-                          className={cn(
-                            'p-3 rounded-lg border cursor-pointer transition-all duration-200',
-                            formData.preferredClusterId === cluster.id
-                              ? 'border-neon-blue bg-neon-blue/10 shadow-neon'
-                              : 'border-gray-200 dark:border-gray-600 hover:border-neon-blue/50'
-                          )}
-                          onClick={() => handleClusterSelect(cluster.id)}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                            <div>
-                              <h4 className="font-medium text-gray-900 dark:text-white">
-                                {cluster.name}
-                              </h4>
-                              {cluster.description && (
-                                <p className="text-xs text-gray-600 dark:text-gray-400">
-                                  {cluster.description}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-
-              {/* Form */}
+            <div className="p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
               <FormBuilder
-                fields={allFields}
+                fields={fields}
                 onSubmit={handleSubmit}
                 submitLabel="Create Container"
-                isLoading={isLoading}
-                className="space-y-4"
+                isLoading={createContainerMutation.isPending}
+                className="space-y-6"
               />
+
+              {/* Environment Variables Section */}
+              <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                    Environment Variables
+                  </h3>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={addEnvironmentVar}
+                    leftIcon={<Plus className="w-4 h-4" />}
+                  >
+                    Add Variable
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {environmentVars.map((env, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        placeholder="Variable name"
+                        value={env.key}
+                        onChange={(e) => updateEnvironmentVar(index, 'key', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Value"
+                        value={env.value}
+                        onChange={(e) => updateEnvironmentVar(index, 'value', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => removeEnvironmentVar(index)}
+                        leftIcon={<X className="w-4 h-4" />}
+                        className="px-3"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate('/containers')}
+                  disabled={createContainerMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  isLoading={createContainerMutation.isPending}
+                  disabled={createContainerMutation.isPending}
+                  onClick={() => {
+                    // Trigger form submission programmatically
+                    const form = document.querySelector('form');
+                    form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                  }}
+                >
+                  Create Container
+                </Button>
+              </div>
             </div>
           </motion.div>
 
@@ -306,73 +287,110 @@ const CreateContainer = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="sticky p-6 bg-white border border-gray-200 shadow-xl dark:bg-gray-800 rounded-xl dark:border-gray-700 top-6">
+            <div className="sticky p-6 bg-white border border-gray-200 rounded-lg shadow-sm top-6 dark:bg-gray-800 dark:border-gray-700">
               <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Configuration Preview
               </h3>
 
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Type:</span>
-                  <span className={cn(
-                    'font-medium',
-                    formData.enableHA ? 'text-neon-blue' : 'text-gray-900 dark:text-white'
-                  )}>
-                    {formData.enableHA ? 'High Availability' : 'Standard'}
-                  </span>
-                </div>
-
-                {formData.enableHA && formData.preferredClusterId && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Cluster:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {clusters.find(c => c.id === formData.preferredClusterId)?.name || 'Unknown'}
-                    </span>
+              <div className="space-y-4 text-sm">
+                {/* Selected Egg Preview */}
+                {selectedEgg && (
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Server className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {selectedEgg.name}
+                      </span>
+                    </div>
+                    <p className="font-mono text-xs text-gray-600 dark:text-gray-400">
+                      {selectedEgg.image}
+                    </p>
                   </div>
                 )}
 
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">CPU:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {formData.cpuLimit} cores
-                  </span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Memory:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {formData.memoryLimit} MB
-                  </span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Disk:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {formData.diskLimit} MB
-                  </span>
-                </div>
-              </div>
-
-              {formData.enableHA && (
-                <motion.div
-                  className="p-3 mt-4 border rounded-lg bg-neon-blue/10 border-neon-blue/20"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <div className="flex items-center gap-2 text-neon-blue">
-                    <Shield className="w-4 h-4" />
-                    <span className="text-sm font-medium">HA Enabled</span>
+                {/* Resources Preview */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-600 dark:text-gray-400">CPU:</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {fields.find(f => f.name === 'cpuLimit')?.validation?.min || 1} cores
+                    </span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                    Automatic failover and load balancing across cluster nodes
-                  </p>
-                </motion.div>
-              )}
+
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-600 dark:text-gray-400">Memory:</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {fields.find(f => f.name === 'memoryLimit')?.validation?.min || 512} MB
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-600 dark:text-gray-400">Disk:</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {fields.find(f => f.name === 'diskLimit')?.validation?.min || 1024} MB
+                    </span>
+                  </div>
+                </div>
+
+                {/* Environment Variables Preview */}
+                {environmentVars.some(env => env.key.trim()) && (
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <h4 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      Environment Variables
+                    </h4>
+                    <div className="space-y-1">
+                      {environmentVars
+                        .filter(env => env.key.trim())
+                        .map((env, index) => (
+                          <div key={index} className="font-mono text-xs">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {env.key}
+                            </span>
+                            <span className="text-gray-400 dark:text-gray-500">=</span>
+                            <span className="text-gray-900 dark:text-white">
+                              {env.value}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Nodes Preview */}
+                {nodes.length > 0 && (
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <h4 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      Available Nodes
+                    </h4>
+                    <div className="space-y-1">
+                      {nodes.slice(0, 3).map((node, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs">
+                          <div className={cn(
+                            'w-2 h-2 rounded-full',
+                            'bg-green-500'
+                          )} />
+                          <span className="text-gray-900 dark:text-white">
+                            {node.name}
+                          </span>
+                        </div>
+                      ))}
+                      {nodes.length > 3 && (
+                        <div className="text-xs text-gray-500">
+                          +{nodes.length - 3} more nodes
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
