@@ -11,6 +11,8 @@ export interface UsersTableProps {
   onEdit: (user: User) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
+  selectedUsers?: string[];
+  onSelectionChange?: (userIds: string[]) => void;
 }
 
 export const UsersTable: React.FC<UsersTableProps> = ({
@@ -18,8 +20,46 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   onEdit,
   onDelete,
   isLoading = false,
+  selectedUsers = [],
+  onSelectionChange,
 }) => {
   const columns: ColumnDef<User>[] = [
+    ...(onSelectionChange ? [{
+      id: 'select',
+      header: ({ table }: { table: any }) => (
+        <input
+          type="checkbox"
+          checked={table.getIsAllPageRowsSelected()}
+          onChange={(e) => {
+            table.toggleAllPageRowsSelected(e.target.checked);
+            if (onSelectionChange) {
+              const selectedIds = e.target.checked
+                ? users.map(user => user.id)
+                : [];
+              onSelectionChange(selectedIds);
+            }
+          }}
+          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+        />
+      ),
+      cell: ({ row }: { row: any }) => (
+        <input
+          type="checkbox"
+          checked={row.getIsSelected()}
+          onChange={(e) => {
+            row.toggleSelected(e.target.checked);
+            if (onSelectionChange) {
+              const currentlySelected = users
+                .filter(user => selectedUsers.includes(user.id) ||
+                         (e.target.checked && user.id === row.original.id))
+                .map(user => user.id);
+              onSelectionChange(currentlySelected);
+            }
+          }}
+          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+        />
+      ),
+    }] : []),
     {
       accessorKey: 'id',
       header: 'ID',

@@ -14,6 +14,7 @@ interface TabComponentProps {
   tabClassName?: string;
   activeTabClassName?: string;
   contentClassName?: string;
+  onTabChange?: (tabId: string) => void;
 }
 
 export const TabComponent: React.FC<TabComponentProps> = ({
@@ -23,8 +24,14 @@ export const TabComponent: React.FC<TabComponentProps> = ({
   tabClassName,
   activeTabClassName,
   contentClassName,
+  onTabChange,
 }) => {
   const [activeTab, setActiveTab] = useState(defaultActiveTab || tabs[0]?.id);
+
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId);
+    onTabChange?.(tabId);
+  };
 
   return (
     <div className={cn('w-full', className)}>
@@ -33,7 +40,7 @@ export const TabComponent: React.FC<TabComponentProps> = ({
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             className={cn(
               'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-200',
               'hover:bg-gray-100 dark:hover:bg-gray-800',

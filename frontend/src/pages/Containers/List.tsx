@@ -259,7 +259,8 @@ const ContainersListPage: React.FC = () => {
   const debouncedSearch = useDebounce(searchValue, 300);
 
   // Fetch nodes for filter dropdown
-  const { data: nodes = [] } = useNodes() as { data: Node[] };
+  const { data: nodesData } = useNodes();
+  const nodes = nodesData?.nodes || [];
 
   // Build filters object
   const filters = useMemo(() => {

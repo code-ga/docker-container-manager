@@ -937,6 +937,122 @@ curl -X PATCH http://your-server.com/api/nodes/{nodeId}/token \
 
 Update the agent's `.env` file with the new token.
 
+## Frontend Agent Management
+
+Node agents are fully integrated with the Lormas frontend application, providing administrators with comprehensive agent monitoring and management capabilities through intuitive web interfaces.
+
+### Agent Management via Nodes Page
+
+The frontend provides complete agent lifecycle management through the Nodes interface (`/dashboard/nodes`):
+
+#### Node Registration and Setup
+- **Agent Registration**: Register new nodes through the frontend with automatic token generation
+- **Token Management**: View, rotate, and manage authentication tokens securely
+- **Agent Configuration**: Configure agent settings including name, cluster assignment, and resource limits
+- **Bulk Operations**: Register multiple agents simultaneously with batch configuration
+
+#### Real-time Agent Monitoring
+- **Connection Status**: Live WebSocket connection status with color-coded indicators
+- **Heartbeat Monitoring**: Real-time heartbeat status with last seen timestamps
+- **Resource Utilization**: CPU, memory, and disk usage with historical trends
+- **Container Count**: Number of containers currently managed by each agent
+
+#### Agent Status Indicators
+The frontend displays comprehensive agent health information:
+
+```typescript
+// Agent status object displayed in NodeCard
+const agentStatus = {
+  connection: 'connected',     // connected, disconnected, error
+  lastHeartbeat: '2024-01-01T10:30:00Z',
+  uptime: '5d 12h 30m',
+  resources: {
+    cpu: 45,      // percentage
+    memory: '2.1GB / 4GB',
+    disk: '15GB / 100GB'
+  },
+  containers: 12,
+  version: '1.0.0'
+};
+```
+
+### Cluster-based Agent Management
+
+Agents are organized through cluster management (`/dashboard/clusters`):
+
+#### Cluster Organization
+- **Cluster Creation**: Group nodes/agents logically for better resource management
+- **Load Distribution**: Automatic container distribution across agents in a cluster
+- **Agent Assignment**: Move agents between clusters with zero downtime
+- **Cluster Health**: Monitor overall cluster health based on member agent status
+
+#### High Availability Integration
+- **HA Container Support**: Agents participate in HA container migration workflows
+- **Automatic Failover**: Seamless migration when agents become unhealthy
+- **Migration Coordination**: Agents coordinate with each other during container transfers
+- **State Preservation**: Complete container state preservation during migrations
+
+### Container Migration Management
+
+The frontend provides comprehensive migration management for agents:
+
+#### Migration Dashboard
+- **Active Migrations**: Real-time view of ongoing container migrations
+- **Migration History**: Complete history of all migrations involving each agent
+- **Migration Performance**: Success rates, average duration, and failure analysis
+- **Manual Migration**: Trigger migrations between agents through simple interface
+
+#### Migration Workflows
+1. **Source Agent Selection**: Choose which agent's containers to migrate
+2. **Target Agent Selection**: Select destination agent with sufficient capacity
+3. **Migration Preview**: Preview what will be transferred and estimated downtime
+4. **Progress Monitoring**: Real-time progress with step-by-step status updates
+5. **Post-migration Verification**: Automatic verification of successful migration
+
+### Agent Logs and Diagnostics
+
+#### Centralized Logging
+- **Agent Log Streaming**: Real-time agent logs streamed to frontend
+- **Log Filtering**: Filter logs by level, time range, or specific events
+- **Log Search**: Full-text search across all agent logs
+- **Log Export**: Export logs for external analysis and troubleshooting
+
+#### Diagnostic Tools
+- **Connection Testing**: Test WebSocket connectivity and performance
+- **Resource Monitoring**: Detailed resource usage graphs and trends
+- **Error Tracking**: Comprehensive error logging with stack traces
+- **Performance Metrics**: Response times, throughput, and system health metrics
+
+### Security Management
+
+#### Token Security
+- **Secure Token Storage**: Tokens encrypted and stored securely in database
+- **Token Rotation**: Regular token rotation with zero-downtime updates
+- **Access Logging**: Complete audit trail of token usage and access patterns
+- **Permission-based Access**: Role-based access to agent management functions
+
+#### Network Security
+- **Connection Monitoring**: Monitor all agent connections and detect anomalies
+- **IP Whitelisting**: Optional IP-based access control for agents
+- **SSL/TLS Support**: Secure WebSocket connections with certificate validation
+- **Firewall Integration**: Coordinate with firewall rules for agent access
+
+### Alerting and Notifications
+
+#### Real-time Alerts
+- **Connection Issues**: Immediate alerts when agents lose connection
+- **Resource Thresholds**: Alerts when agent resource usage exceeds thresholds
+- **Migration Failures**: Notifications for failed container migrations
+- **Security Events**: Alerts for suspicious agent activities
+
+#### Notification Channels
+- **In-app Notifications**: Real-time notifications within the frontend
+- **Email Alerts**: Email notifications for critical events
+- **Webhook Support**: Webhook notifications for external monitoring systems
+- **SMS Alerts**: SMS notifications for critical downtime events
+
+This comprehensive frontend integration transforms agent management from a command-line operation into an intuitive, visual experience while maintaining all the power and flexibility of direct agent management.
+
 ## Troubleshooting
 
 ### Connection Issues

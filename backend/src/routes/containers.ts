@@ -6,7 +6,7 @@ import { eq, desc, sql, and } from "drizzle-orm";
 import { hasPermission } from "../permissions";
 import { randomUUID } from "crypto";
 import { wsManager } from "../libs/websocket";
-import { createPermissionResolve } from "../middlewares/permissions-guard";
+import { auth } from "../libs/auth/auth";
 
 // Container type definitions
 const containerType = t.Object({
@@ -110,7 +110,24 @@ async function checkContainerOwnership(
 }
 
 export const containersRouter = new Elysia({ prefix: "/containers" })
-  .resolve(createPermissionResolve("container:read"))
+  .resolve(async (context) => {
+    const session = await auth.api.getSession({ headers: context.request.headers });
+
+    if (!session || !session.user) {
+      context.set.status = 401;
+      return {
+        status: 401,
+        type: "error",
+        success: false,
+        message: "Unauthorized: Authentication required"
+      };
+    }
+
+    return {
+      user: session.user,
+      session: session.session
+    };
+  })
   // GET /api/v1/containers - List containers (own or all if manage perm)
   .get(
     "/",

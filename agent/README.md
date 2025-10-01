@@ -103,6 +103,46 @@ bun run agent.js
 node agent.js
 ```
 
+## Frontend Integration
+
+Node agents work seamlessly with the Lormas frontend application for comprehensive node and cluster management:
+
+### Node Management via Frontend
+
+The frontend provides a complete interface for managing nodes where agents are deployed:
+
+- **Node Dashboard** (`/dashboard/nodes`): Real-time node status, resource monitoring, and health indicators
+- **Cluster Organization** (`/dashboard/clusters`): Group nodes into clusters for logical organization and load balancing
+- **Container Distribution**: Automatic container distribution across healthy nodes in clusters
+- **Real-time Monitoring**: Live node status updates via WebSocket heartbeats
+
+### High Availability Support
+
+Agents support high availability features managed through the frontend:
+
+- **HA Container Types**: Fault-tolerant containers that automatically migrate on node failure
+- **Migration Triggers**: Automatic migration when node heartbeat is lost (>30 seconds)
+- **Target Selection**: Intelligent selection of healthy nodes in the same or preferred cluster
+- **Migration History**: Track all migration events with timestamps and status
+
+### Agent Status Monitoring
+
+The frontend displays real-time agent information:
+
+- **Connection Status**: WebSocket connection health and uptime
+- **Resource Usage**: CPU, memory, and disk utilization
+- **Container Count**: Number of containers currently managed by the agent
+- **Last Heartbeat**: Timestamp of the last successful heartbeat
+
+### Container Migration
+
+When containers need to migrate between nodes (due to failure or manual trigger):
+
+1. **Frontend Trigger**: Admin initiates migration via `/dashboard/containers`
+2. **Agent Coordination**: Source agent stops container, target agent creates identical container
+3. **State Transfer**: Container configuration, environment variables, and volumes are preserved
+4. **Real-time Updates**: Migration progress shown in frontend with live status updates
+
 ## Environment Variables
 
 - `SERVER_URL`: WebSocket URL of the Lormas server (default: ws://localhost:3000)

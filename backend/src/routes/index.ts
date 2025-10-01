@@ -59,7 +59,6 @@ const apiRouter = new Elysia({
   .use(userRouter)
 
   // Protected routes with role-based permissions
-  .resolve(createPermissionResolve("user:read"))
   .use(rolesRouter)
 
   // Cluster management routes - requires cluster management permissions
@@ -74,12 +73,10 @@ const apiRouter = new Elysia({
   .resolve(createPermissionResolve("egg:manage"))
   .use(eggsRouter)
 
-  // Container management routes - requires container management permissions
-  .resolve(createPermissionResolve("container:manage"))
+  // Container management routes - has internal permission logic
   .use(containersRouter)
 
-  // Logs routes - requires user authentication
-  .resolve(createPermissionResolve("container:read"))
+  // Logs routes - has internal authentication logic
   .use(logsRouter);
 
 export default apiRouter;

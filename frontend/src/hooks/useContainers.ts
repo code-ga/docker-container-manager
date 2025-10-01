@@ -69,6 +69,23 @@ export interface ContainerFilters {
   nodeId?: string;
 }
 
+export interface MigrationData {
+  targetNodeId: string;
+  schedule?: boolean;
+}
+
+export interface MigrationHistory {
+  id: string;
+  containerId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+  scheduled: boolean;
+}
+
 // Query keys factory
 export const containerKeys = {
   all: ['containers'] as const,
@@ -78,6 +95,7 @@ export const containerKeys = {
   detail: (id: string) => [...containerKeys.details(), id] as const,
   stats: (id: string) => [...containerKeys.all, 'stats', id] as const,
   logs: (id: string, lines?: number) => [...containerKeys.all, 'logs', id, lines] as const,
+  migrationHistory: (id: string) => [...containerKeys.all, 'migration-history', id] as const,
 };
 
 // Hook for fetching containers with filters
@@ -258,4 +276,70 @@ export const useContainerActions = () => {
       );
     },
   });
+};
+
+// Hook for fetching migration history
+export const useMigrationHistory = (id: string, enabled = true) => {
+  return useQuery({
+    queryKey: containerKeys.migrationHistory(id),
+    queryFn: async () => {
+      const response = await apiEndpoints.containers.getMigrationHistory(id);
+      return response.data;
+    },
+    enabled: enabled && !!id,
+    staleTime: 30000, // 30 seconds
+    retry: 3,
+  });
+};
+
+// Mutation hook for migrating containers
+export const useMigrateContainer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: MigrationData }) => {
+      const response = await apiEndpoints.containers.migrate(id, data);
+      return response.data;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate container details, migration history, and lists
+      queryClient.invalidateQueries({ queryKey: containerKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: containerKeys.migrationHistory(variables.id) });
+      queryClient.invalidateQueries({ queryKey: containerKeys.lists() });
+
+      const actionText = variables.data.schedule ? 'scheduled for migration' : 'migration started';
+      toastManager.showSuccess(`Container ${actionText} successfully`);
+    },
+    onError: (error) => {
+      const errorMessage = handleApiError(error);
+      toastManager.showError('Failed to migrate container', errorMessage);
+    },
+  });
+};
+
+// WebSocket subscription function for migration progress
+export const subscribeToMigration = (
+   
+  _containerId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _callback: (data: { type: string; status: string; progress?: number; message?: string }) => void
+) => {
+  // This would integrate with the WebSocket hook for real-time migration updates
+  // For now, return a cleanup function
+  // TODO: Integrate with useWebSocket hook when available for migration-specific endpoint
+
+  // Placeholder implementation - in real implementation this would:
+  // 1. Connect to WebSocket for migration updates (/ws/containers/migrate)
+  // 2. Listen for migration status changes, progress updates, etc.
+  // 3. Call callback with real-time migration data
+  // 4. Filter messages by containerId
+
+   
+  console.log(`Subscribing to migration updates for container: ${_containerId}`);
+
+  return () => {
+     
+    console.log(`Unsubscribing from migration updates for container: ${_containerId}`);
+    // Cleanup subscription - close WebSocket connection, remove listeners, etc.
+  };
 };

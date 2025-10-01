@@ -1,9 +1,19 @@
 import React, { createContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { useUsers } from '../hooks/useUsers';
 import { useSession } from '../lib/auth';
 import { apiEndpoints, handleApiError } from '../lib/api';
-import type { User } from '../hooks/useUsers';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  image: string | null;
+  postIds: string[];
+  roleIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface RoleWithPermissions {
   id: string;
@@ -30,7 +40,6 @@ interface PermissionsProviderProps {
 
 export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ children }) => {
   const { data: session } = useSession();
-  const { isLoading: usersLoading } = useUsers();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [rolesWithPermissions, setRolesWithPermissions] = useState<RoleWithPermissions[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(false);
@@ -150,7 +159,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
     return permissions.every(permission => hasPermission(permission));
   };
 
-  const isLoading = usersLoading || !session || isLoadingRoles;
+  const isLoading = !session || isLoadingRoles;
 
   const value: PermissionsContextType = {
     hasPermission,

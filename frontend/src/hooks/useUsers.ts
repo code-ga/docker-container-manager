@@ -1,5 +1,7 @@
-import { useState, useCallback } from "react";
-import { apiEndpoints, handleApiError } from "../lib/api";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiEndpoints, handleApiError } from '../lib/api';
+import { toastManager } from '../lib/toast';
+import { usePermissions } from './usePermissions';
 
 // User type definition - matches backend schema
 export interface User {
@@ -36,9 +38,6 @@ interface ValidationResponse {
   };
 }
 
-interface UserResponse {
-  user: User;
-}
 
 export interface CreateUserData {
   name: string;
@@ -53,39 +52,32 @@ export interface UpdateUserData {
   roles?: string[];
 }
 
-export interface UseUsersReturn {
-  users: User[];
-  isLoading: boolean;
-  error: string | null;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  } | null;
-  fetchUsers: (search?: string) => Promise<void>;
-  createUser: (userData: CreateUserData) => Promise<User | null>;
-  updateUser: (id: string, userData: UpdateUserData) => Promise<User | null>;
-  deleteUser: (id: string) => Promise<boolean>;
-  refetch: () => Promise<void>;
+export interface BulkUpdateRolesData {
+  userIds: string[];
+  roleId: string;
 }
 
-export const useUsers = (): UseUsersReturn => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [pagination, setPagination] = useState<{
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Query keys factory
+export const userKeys = {
+  all: ['users'] as const,
+  lists: () => [...userKeys.all, 'list'] as const,
+  list: (search?: string) => [...userKeys.lists(), search] as const,
+  details: () => [...userKeys.all, 'detail'] as const,
+  detail: (id: string) => [...userKeys.details(), id] as const,
+};
 
-  const fetchUsers = useCallback(async (search?: string) => {
-    setIsLoading(true);
-    setError(null);
+// Hook for fetching users with search
+export const useUsers = (search?: string, enabled = true) => {
+  const { hasPermission } = usePermissions();
 
-    try {
+  return useQuery({
+    queryKey: userKeys.list(search),
+    queryFn: async () => {
+      // Check permissions
+      if (!hasPermission('users:read')) {
+        throw new Error('Insufficient permissions to read users');
+      }
+
       const response = await apiEndpoints.users.list();
 
       // Handle validation wrapper structure from backend
@@ -108,10 +100,10 @@ export const useUsers = (): UseUsersReturn => {
           );
         }
 
-        setUsers(filteredUsers);
-        setPagination(paginationData);
-        setError(null);
-        setIsLoading(false);
+        return {
+          users: filteredUsers,
+          pagination: paginationData,
+        };
       } else if (response.success && response.data) {
         // Handle direct response structure (fallback)
         let usersData = (response.data as UsersListResponse).users;
@@ -126,123 +118,181 @@ export const useUsers = (): UseUsersReturn => {
           );
         }
 
-        setUsers(usersData);
-        setPagination((response.data as UsersListResponse).pagination || null);
+        return {
+          users: usersData,
+          pagination: (response.data as UsersListResponse).pagination || null,
+        };
       } else {
-        setError("Failed to fetch users");
-      }
-    } catch (err) {
-      const errorMessage = handleApiError(err);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const createUser = useCallback(
-    async (userData: CreateUserData): Promise<User | null> => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await apiEndpoints.users.create({
-          name: userData.name,
-          email: userData.email,
-          password: userData.password,
-          roleId: userData.roles.length > 0 ? userData.roles[0] : undefined, // Backend expects single roleId
-        });
-
-        if (response.success && response.data) {
-          const newUser = (response.data as UserResponse).user;
-          setUsers((prev) => [...prev, newUser]);
-          return newUser;
-        } else {
-          setError("Failed to create user");
-          return null;
-        }
-      } catch (err) {
-        const errorMessage = handleApiError(err);
-        setError(errorMessage);
-        return null;
-      } finally {
-        setIsLoading(false);
+        throw new Error("Failed to fetch users");
       }
     },
-    []
-  );
+    enabled: enabled && hasPermission('users:read'),
+    staleTime: 30000, // 30 seconds
+    retry: 3,
+  });
+};
 
-  const updateUser = useCallback(
-    async (id: string, userData: UpdateUserData): Promise<User | null> => {
-      setIsLoading(true);
-      setError(null);
+// Hook for fetching a single user
+export const useUser = (id: string, enabled = true) => {
+  const { hasPermission } = usePermissions();
 
-      try {
-        const response = await apiEndpoints.users.update(id, {
-          name: userData.name,
-          email: userData.email,
-          roleId:
-            userData.roles && userData.roles.length > 0
-              ? userData.roles[0]
-              : undefined,
-        });
-
-        if (response.success && response.data) {
-          const updatedUser = (response.data as UserResponse).user;
-          setUsers((prev) =>
-            prev.map((user) => (user.id === id ? updatedUser : user))
-          );
-          return updatedUser;
-        } else {
-          setError("Failed to update user");
-          return null;
-        }
-      } catch (err) {
-        const errorMessage = handleApiError(err);
-        setError(errorMessage);
-        return null;
-      } finally {
-        setIsLoading(false);
+  return useQuery({
+    queryKey: userKeys.detail(id),
+    queryFn: async () => {
+      // Check permissions
+      if (!hasPermission('users:read')) {
+        throw new Error('Insufficient permissions to read users');
       }
+
+      const response = await apiEndpoints.users.get(id);
+      return response.data;
     },
-    []
-  );
+    enabled: enabled && !!id && hasPermission('users:read'),
+    staleTime: 30000,
+    retry: 3,
+  });
+};
 
-  const deleteUser = useCallback(async (id: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
+// Mutation hook for creating users
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
 
-    try {
+  return useMutation({
+    mutationFn: async (data: CreateUserData) => {
+      // Check permissions
+      if (!hasPermission('users:create')) {
+        throw new Error('Insufficient permissions to create users');
+      }
+
+      const response = await apiEndpoints.users.create({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        roleId: data.roles.length > 0 ? data.roles[0] : undefined, // Backend expects single roleId
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch users list
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      toastManager.showSuccess('User created successfully');
+    },
+    onError: (error) => {
+      const errorMessage = handleApiError(error);
+      toastManager.showError('Failed to create user', errorMessage);
+    },
+  });
+};
+
+// Mutation hook for updating users
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateUserData }) => {
+      // Check permissions
+      if (!hasPermission('users:update')) {
+        throw new Error('Insufficient permissions to update users');
+      }
+
+      const response = await apiEndpoints.users.update(id, {
+        name: data.name,
+        email: data.email,
+        roleId:
+          data.roles && data.roles.length > 0
+            ? data.roles[0]
+            : undefined,
+      });
+      return response.data;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate specific user and users list
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      toastManager.showSuccess('User updated successfully');
+    },
+    onError: (error) => {
+      const errorMessage = handleApiError(error);
+      toastManager.showError('Failed to update user', errorMessage);
+    },
+  });
+};
+
+// Mutation hook for deleting users
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Check permissions
+      if (!hasPermission('users:delete')) {
+        throw new Error('Insufficient permissions to delete users');
+      }
+
       const response = await apiEndpoints.users.delete(id);
+      return response.data;
+    },
+    onSuccess: (_data, variables) => {
+      // Remove user from cache and invalidate lists
+      queryClient.removeQueries({ queryKey: userKeys.detail(variables) });
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      toastManager.showSuccess('User deleted successfully');
+    },
+    onError: (error) => {
+      const errorMessage = handleApiError(error);
+      toastManager.showError('Failed to delete user', errorMessage);
+    },
+  });
+};
 
-      if (response.success) {
-        setUsers((prev) => prev.filter((user) => user.id !== id));
-        return true;
-      } else {
-        setError("Failed to delete user");
-        return false;
+// Mutation hook for bulk updating user roles
+export const useBulkUpdateRoles = () => {
+  const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
+
+  return useMutation({
+    mutationFn: async (data: BulkUpdateRolesData) => {
+      // Check permissions
+      if (!hasPermission('users:manage')) {
+        throw new Error('Insufficient permissions to manage user roles');
       }
-    } catch (err) {
-      const errorMessage = handleApiError(err);
-      setError(errorMessage);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
-  const refetch = useCallback(async () => {
-    await fetchUsers();
-  }, [fetchUsers]);
+      const response = await apiEndpoints.users.bulkRoles(data);
+      return response.data;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate all user queries since multiple users may have been updated
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+      toastManager.showSuccess(`Roles assigned to ${variables.userIds.length} users successfully`);
+    },
+    onError: (error) => {
+      const errorMessage = handleApiError(error);
+      toastManager.showError('Failed to update user roles', errorMessage);
+    },
+  });
+};
+
+// Legacy hook for backward compatibility (uses the new React Query hooks internally)
+export const useUsersLegacy = () => {
+  const { data, isLoading, error, refetch } = useUsers();
+  const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+  const deleteUser = useDeleteUser();
+  const bulkUpdateRoles = useBulkUpdateRoles();
 
   return {
-    users,
+    users: data?.users || [],
     isLoading,
-    error,
-    pagination,
-    fetchUsers,
-    createUser,
-    updateUser,
-    deleteUser,
+    error: error?.message || null,
+    pagination: data?.pagination || null,
+    fetchUsers: refetch,
+    createUser: createUser.mutateAsync,
+    updateUser: updateUser.mutateAsync,
+    deleteUser: deleteUser.mutateAsync,
+    bulkUpdateRoles: bulkUpdateRoles.mutateAsync,
     refetch,
   };
 };

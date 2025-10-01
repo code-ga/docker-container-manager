@@ -262,6 +262,102 @@ http://localhost:3000/api
 
 ### WebSocket Endpoints
 - `WS /api/ws/nodes` - Node agent WebSocket connection
+- `WS /api/ws/logs` - Real-time container logs for frontend clients
+
+## Frontend Integration
+
+The Lormas backend provides a comprehensive REST API and WebSocket interface that seamlessly integrates with the React frontend application.
+
+### Supported Frontend Pages
+
+The backend API supports all frontend management interfaces:
+
+#### Nodes Management (`/dashboard/nodes`)
+- `GET /api/nodes` - List all nodes with status and resource information
+- `POST /api/nodes` - Create new nodes with token generation
+- `GET /api/nodes/:id` - Get detailed node information
+- `PUT /api/nodes/:id` - Update node configuration
+- `DELETE /api/nodes/:id` - Remove nodes from the system
+- `PATCH /api/nodes/:id/token` - Rotate node authentication tokens
+
+#### Clusters Management (`/dashboard/clusters`)
+- `GET /api/clusters` - List all clusters and their associated nodes
+- `POST /api/clusters` - Create new clusters for node organization
+- `GET /api/clusters/:id` - Get cluster details and member nodes
+- `PUT /api/clusters/:id` - Update cluster configuration
+- `DELETE /api/clusters/:id` - Remove clusters from the system
+
+#### Eggs Management (`/dashboard/eggs`)
+- `GET /api/eggs` - List all container templates
+- `POST /api/eggs` - Create new egg configurations
+- `GET /api/eggs/:id` - Get detailed egg configuration
+- `PUT /api/eggs/:id` - Update egg templates
+- `DELETE /api/eggs/:id` - Remove egg templates
+
+#### Containers Management (`/dashboard/containers`)
+- `GET /api/containers` - List containers with filtering and pagination
+- `POST /api/containers` - Create new containers from eggs
+- `GET /api/containers/:id` - Get container details and status
+- `PUT /api/containers/:id` - Update container configuration
+- `DELETE /api/containers/:id` - Remove containers
+- `POST /api/containers/:id/start` - Start container operations
+- `POST /api/containers/:id/stop` - Stop container operations
+- `POST /api/containers/:id/restart` - Restart container operations
+- `GET /api/containers/:id/logs` - Retrieve container logs
+- `POST /api/containers/:id/migrate` - Manual container migration (HA)
+
+#### Admin Settings (`/settings/admin`)
+- `GET /api/users` - List all users in the system
+- `POST /api/users` - Create new user accounts
+- `GET /api/users/:id` - Get user details and permissions
+- `PUT /api/users/:id` - Update user information
+- `DELETE /api/users/:id` - Remove user accounts
+- `GET /api/roles` - List all roles and permissions
+- `POST /api/roles` - Create new roles
+- `PUT /api/roles/:id` - Update role permissions
+- `DELETE /api/roles/:id` - Remove roles
+
+### Real-time Features
+
+#### WebSocket Integration
+The backend provides real-time updates through WebSocket connections:
+
+- **Container Logs**: `WS /api/ws/logs` - Streams live container logs to frontend clients
+- **Node Status**: `WS /api/ws/nodes` - Provides real-time node health and status updates
+- **Migration Events**: Live updates during HA container migrations
+- **System Notifications**: Real-time notifications for important events
+
+#### High Availability Support
+- **HA Container Types**: Support for fault-tolerant containers with automatic migration
+- **Migration History**: `GET /api/containers/:id/migration-history` - Track migration events
+- **Node Health Monitoring**: Real-time node health status via heartbeat system
+- **Automatic Failover**: Containers automatically migrate on node failure
+
+### Frontend-Specific Features
+
+#### Authentication Integration
+- JWT-based authentication with automatic token refresh
+- Session management with secure cookie handling
+- Role-based access control for all API endpoints
+- Permission-based UI component rendering
+
+#### API Response Format
+All API endpoints return structured JSON responses:
+```json
+{
+  "data": {...},
+  "message": "Operation successful",
+  "status": "success"
+}
+```
+
+#### Error Handling
+Comprehensive error handling with appropriate HTTP status codes:
+- `400` - Bad Request (validation errors)
+- `401` - Unauthorized (authentication required)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found (resource doesn't exist)
+- `500` - Internal Server Error (server issues)
 
 ## Authentication
 

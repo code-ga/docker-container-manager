@@ -365,3 +365,118 @@ app.ws('/api/ws/nodes', {
 - **Deployment**: Dockerize backend; nodes run agent as systemd service.
 
 This design ensures modularity, security, and scalability while leveraging the existing Elysia/Better-Auth/Drizzle stack with enhanced type safety and validation.
+
+## Complete System Architecture
+
+The Lormas Container Manager now encompasses a complete full-stack architecture with seamless frontend-backend integration:
+
+### Frontend Architecture Integration
+
+#### React Application Layer
+- **Modern UI Framework**: React 18 with TypeScript for type-safe development
+- **Build System**: Vite with hot module replacement for rapid development
+- **Styling**: Tailwind CSS with custom dark theme and anime-inspired design
+- **State Management**: Custom hooks and React Context for global state
+- **Real-time Features**: WebSocket integration for live updates
+
+#### Management Interfaces
+- **Nodes Dashboard** (`/dashboard/nodes`): Complete node lifecycle management
+- **Clusters Dashboard** (`/dashboard/clusters`): Multi-node organization and load balancing
+- **Eggs Library** (`/dashboard/eggs`): Container template management with JSON editor
+- **Containers Console** (`/dashboard/containers`): Full container lifecycle with HA support
+- **Admin Panel** (`/settings/admin`): User management and role-based permissions
+
+#### Component Architecture
+- **Reusable Components**: 80% shared component library for consistency
+- **Data Components**: Advanced tables with search, filtering, and pagination
+- **Entity Components**: Specialized components for each resource type
+- **Layout System**: Responsive design with dark theme and animations
+
+### Integrated System Flow
+
+#### Complete Request Flow
+1. **User Interface**: React components send API requests via custom hooks
+2. **API Layer**: Elysia backend validates requests with TypeBox schemas
+3. **Authentication**: Better-Auth verifies JWT tokens and permissions
+4. **Database**: Drizzle ORM executes type-safe queries on PostgreSQL
+5. **Node Agents**: WebSocket commands sent to agents for Docker operations
+6. **Real-time Updates**: WebSocket responses streamed back to frontend
+7. **UI Updates**: React components update with real-time data
+
+#### High Availability Flow
+1. **HA Container Creation**: Frontend enables HA type with cluster selection
+2. **Node Monitoring**: Agents send heartbeats every 10 seconds via WebSocket
+3. **Failure Detection**: Backend cron job detects unhealthy nodes (>30s no heartbeat)
+4. **Automatic Migration**: Backend selects target node and initiates migration
+5. **Agent Coordination**: Source agent stops container, target creates identical
+6. **State Transfer**: Container configuration preserved during migration
+7. **Real-time Updates**: Frontend displays migration progress and completion
+
+### Technology Stack Overview
+
+#### Backend Technologies
+- **Runtime**: Bun.js for high-performance JavaScript execution
+- **Framework**: Elysia for type-safe API development
+- **Database**: PostgreSQL with Drizzle ORM for type safety
+- **Authentication**: Better-Auth for session and OAuth management
+- **WebSockets**: Native WebSocket support with TypeBox validation
+- **Logging**: Pino-style structured logging throughout
+
+#### Frontend Technologies
+- **Framework**: React 18 with TypeScript for type safety
+- **Build Tool**: Vite for fast development and optimized production builds
+- **Styling**: Tailwind CSS with custom design system
+- **Animations**: Framer Motion for smooth, anime-inspired transitions
+- **HTTP Client**: Axios for API communication with interceptors
+- **Real-time**: Native WebSocket integration with reconnection logic
+- **Forms**: React Hook Form with Zod validation
+
+#### Infrastructure Components
+- **Node Agents**: TypeScript agents with Dockerode integration
+- **Reverse Proxy**: Nginx for traffic routing and SSL termination
+- **Database**: PostgreSQL with migration support
+- **Container Runtime**: Docker daemon on each node
+
+### Security Architecture
+
+#### Multi-layer Security
+- **API Security**: JWT authentication with role-based permissions
+- **WebSocket Security**: Token-based authentication for real-time features
+- **Database Security**: Row-level security and encrypted sensitive data
+- **Network Security**: HTTPS/WSS encryption and firewall rules
+
+#### Permission System
+- **Granular Permissions**: 20+ permissions for fine-grained access control
+- **Role Management**: Flexible role system with permission inheritance
+- **Resource Scoping**: Owner-based permissions for user resources
+- **Admin Override**: Superuser bypass for administrative functions
+
+### Deployment Architecture
+
+#### Containerized Deployment
+- **Backend Service**: Docker container with Elysia application
+- **Frontend Service**: Docker container with Vite production build
+- **Database Service**: PostgreSQL container with persistent storage
+- **Proxy Service**: Nginx container for reverse proxy and SSL
+
+#### Scalability Features
+- **Horizontal Scaling**: Multiple backend instances behind load balancer
+- **Database Scaling**: Read replicas and connection pooling
+- **Node Distribution**: Containers distributed across available nodes
+- **Caching Strategy**: In-memory caching for frequently accessed data
+
+### Development Architecture
+
+#### Development Tools
+- **Type Safety**: Full TypeScript coverage across stack
+- **Hot Reloading**: Vite HMR for frontend, backend auto-restart
+- **Code Quality**: ESLint and Prettier for consistent code style
+- **Testing**: Vitest for unit tests, Playwright for E2E tests
+
+#### Development Workflow
+- **Frontend Development**: `cd frontend && bun run dev` with hot reload
+- **Backend Development**: `cd backend && bun run dev` with auto-restart
+- **Database Migrations**: `bunx drizzle-kit generate/migrate`
+- **Docker Development**: `docker-compose --profile dev up` for full stack
+
+This comprehensive architecture provides a solid foundation for scalable, secure, and maintainable container management while delivering an exceptional user experience through modern web technologies.

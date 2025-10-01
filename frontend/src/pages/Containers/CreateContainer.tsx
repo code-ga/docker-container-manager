@@ -5,7 +5,7 @@ import { ArrowLeft, Server, Plus, X, Cpu, HardDrive, Database } from 'lucide-rea
 import { Button } from '../../components/ui/Button';
 import { FormBuilder, type FormField } from '../../components/data/FormBuilder';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { useEggs, useNodes, type Egg, type Node } from '../../hooks/useEntities';
+import { useEggs, useNodes, type Egg } from '../../hooks/useEntities';
 import { useCreateContainer, type CreateContainerData } from '../../hooks/useContainers';
 import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
@@ -26,8 +26,10 @@ const CreateContainer = () => {
   const hasPermission = true; // TODO: Implement proper permission checking
 
   // Fetch data
-  const { data: eggs = [] } = useEggs() as { data: Egg[] };
-  const { data: nodes = [] } = useNodes() as { data: Node[] };
+  const { data: eggsData } = useEggs();
+  const eggs = eggsData?.eggs || [];
+  const { data: nodesData } = useNodes();
+  const nodes = nodesData?.nodes || [];
 
   // Create container mutation
   const createContainerMutation = useCreateContainer();

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { API_ENDPOINTS } from '../lib/constants';
 
 export interface UseContainerHAOptions {
   containerId: string;
@@ -104,7 +105,7 @@ export const useContainerHA = ({
     if (!enabled || !containerId) return;
 
     const initSocket = () => {
-      const socket = io('/api/ws/ha', {
+      const socket = io(API_ENDPOINTS.WS_HA, {
         transports: ['websocket', 'polling'],
         timeout: 5000,
       });

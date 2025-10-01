@@ -1,4 +1,5 @@
 import React from "react";
+import { AUTH_URLS } from "../lib/constants";
 
 interface LinkedAccounts {
   google: boolean;
@@ -14,9 +15,9 @@ interface Props {
 }
 
 const SOCIAL_PROVIDERS = [
-  { name: "Google", key: "google", authUrl: "/api/auth/google" },
-  { name: "GitHub", key: "github", authUrl: "/api/auth/github" },
-  { name: "Discord", key: "discord", authUrl: "/api/auth/discord" },
+  { name: "Google", key: "google", authUrl: AUTH_URLS.GOOGLE },
+  { name: "GitHub", key: "github", authUrl: AUTH_URLS.GITHUB },
+  { name: "Discord", key: "discord", authUrl: AUTH_URLS.DISCORD },
 ] as const;
 
 const LinkSocialAccounts: React.FC<Props> = ({ linked, loading, handleLink, handleUnlink }) => {

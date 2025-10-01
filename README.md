@@ -12,7 +12,65 @@ A modern, web-based container management system built with Node.js, React, and P
 - 📝 **Log Streaming**: Real-time container log streaming and filtering
 - 🎨 **Modern UI**: Beautiful, responsive interface built with React and Tailwind CSS
 
-## Architecture
+## Frontend Features
+
+The Lormas Container Manager now includes a comprehensive frontend application with modern UI components and real-time management capabilities.
+
+### New Pages and Features
+
+- **Dashboard Pages**:
+  - **Nodes Management** (`/dashboard/nodes`): Create, edit, delete, and monitor nodes with real-time status updates
+  - **Clusters Management** (`/dashboard/clusters`): Organize nodes into clusters for better resource management
+  - **Eggs Management** (`/dashboard/eggs`): Create and manage container templates with JSON configuration editor
+  - **Admin Settings** (`/settings/admin`): Enhanced user and role management with bulk operations
+
+- **Container Migration Features**:
+  - **High Availability (HA) Containers**: Automatic migration on node failure
+  - **Manual Migration**: Trigger container migration between nodes
+  - **Migration History**: Track all migration events with status and timestamps
+  - **Real-time Updates**: Live migration status via WebSocket
+
+- **Enhanced Components**:
+  - **NodeCard**: Real-time node status with resource monitoring
+  - **ContainerCard**: Container lifecycle management with logs viewer
+  - **DataTable**: Advanced table with search, filtering, and pagination
+  - **FormBuilder**: Dynamic form generation for CRUD operations
+  - **LogViewer**: Real-time container log streaming with syntax highlighting
+
+### Frontend Quick Start
+
+#### Development Setup
+
+```bash
+# Install frontend dependencies
+cd frontend
+bun install
+
+# Start development server with hot reload
+bun run dev
+```
+
+#### Production Build
+
+```bash
+# Build for production
+cd frontend
+bun run build
+
+# Preview production build
+bun run preview
+```
+
+#### Integration with Backend
+
+The frontend integrates seamlessly with the backend API:
+
+- **API Endpoints**: Uses `/api/nodes`, `/api/clusters`, `/api/eggs`, `/api/containers` endpoints
+- **WebSocket Integration**: Real-time updates via `/api/ws/logs` for container logs
+- **Authentication**: JWT-based auth with automatic token refresh
+- **Role-based UI**: Components adapt based on user permissions
+
+### Architecture
 
 Lormas consists of three main components:
 

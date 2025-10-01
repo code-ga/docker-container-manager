@@ -331,3 +331,136 @@ For scalability: Use DB transactions for updates, queue migrations (e.g., BullMQ
 5. **Auto-Migrate**: For each eligible container, call migrate(): lock, select target, stop old, create/start new, update DB/history, notify WS. Set 'completed' or 'failed'.
 6. **Update/Notify**: DB reflects new node_id/last_migration_at, history logged, WS broadcasts to subscribed clients.
 7. **Resume Operations**: Container runs on new node; frontend updates in real-time. Manual migrate available if needed.
+
+## Frontend HA Integration
+
+The High Availability system is fully integrated with the React frontend application, providing users with comprehensive migration management and monitoring capabilities.
+
+### Container Management Interface
+
+#### HA Container Creation
+The frontend enhances container creation with HA-specific options:
+
+- **HA Toggle**: Checkbox to enable HA type during container creation
+- **Preferred Cluster Selection**: Dropdown to select preferred cluster for migrations
+- **Resource Validation**: Real-time validation of HA requirements and node capacity
+- **Preview Mode**: Visual preview of migration behavior before creation
+
+```typescript
+// Frontend container creation form
+const haForm = {
+  type: 'ha', // Enables HA features
+  preferredClusterId: 'cluster-123',
+  resources: { cpu: 1.0, memory: '512m' }
+};
+```
+
+#### Container Detail Pages
+Container detail views include comprehensive HA information:
+
+- **Migration Status Badge**: Visual indicator showing current migration state
+- **Migration History Table**: Chronological list of all migration events
+- **Manual Migration Button**: Trigger migration to different node
+- **Real-time Progress**: Live updates during active migrations
+
+### Migration Management UI
+
+#### Manual Migration Interface
+Users can trigger manual migrations through an intuitive interface:
+
+- **Target Node Selection**: Dropdown showing available healthy nodes
+- **Migration Preview**: Shows what will be transferred and estimated downtime
+- **Confirmation Dialog**: Clear warning about potential data loss for stateful containers
+- **Progress Tracking**: Real-time progress bar with status updates
+
+#### Migration History
+Comprehensive migration tracking with filtering and search:
+
+- **Timestamp**: When migration occurred
+- **Source/Destination**: Node information for both ends
+- **Status**: Success, failed, or cancelled
+- **Duration**: How long the migration took
+- **Trigger**: Automatic (failure) or manual
+- **Error Details**: Specific error messages for failed migrations
+
+### Real-time Updates
+
+#### WebSocket Integration
+The frontend receives real-time migration updates:
+
+```typescript
+// WebSocket message types for HA
+{
+  type: 'migration_started',
+  containerId: 'container-123',
+  fromNode: 'node-1',
+  toNode: 'node-2'
+}
+
+{
+  type: 'migration_progress',
+  containerId: 'container-123',
+  progress: 75,
+  currentStep: 'transferring_data'
+}
+
+{
+  type: 'migration_completed',
+  containerId: 'container-123',
+  newNodeId: 'node-2',
+  duration: 45000
+}
+```
+
+#### Status Indicators
+Visual status indicators throughout the UI:
+
+- **Idle**: Green badge with "HA Ready" text
+- **Migrating**: Yellow spinning indicator with progress percentage
+- **Completed**: Blue checkmark with timestamp
+- **Failed**: Red X with error tooltip
+
+### Admin Interface Integration
+
+#### Cluster Management
+Administrators can manage HA settings at the cluster level:
+
+- **Node Health Monitoring**: Real-time view of node heartbeat status
+- **Capacity Planning**: Visual representation of node resource utilization
+- **Migration Policies**: Configure automatic migration triggers and preferences
+- **Bulk Operations**: Mass migration of containers between clusters
+
+#### System-wide HA Dashboard
+Centralized view of all HA containers and their status:
+
+- **Global Migration Status**: Overview of all active and recent migrations
+- **Node Health Grid**: Visual grid showing all nodes and their health status
+- **Resource Distribution**: Heat map of resource usage across clusters
+- **Alert Management**: Notifications for failed migrations or unhealthy nodes
+
+### User Experience Enhancements
+
+#### Permission-based Access
+HA features are controlled by granular permissions:
+
+- **container:ha:create**: Create HA containers
+- **migration:manage**: Trigger manual migrations
+- **migration:view**: View migration history and status
+- **cluster:admin**: Manage cluster-level HA settings
+
+#### Responsive Design
+All HA interfaces work seamlessly across devices:
+
+- **Desktop**: Full-featured interface with detailed views
+- **Tablet**: Optimized layout with collapsible sections
+- **Mobile**: Essential features with touch-friendly controls
+
+#### Accessibility
+HA interfaces follow accessibility best practices:
+
+- **Screen Reader Support**: Proper ARIA labels and announcements
+- **Keyboard Navigation**: Full keyboard accessibility for all controls
+- **High Contrast**: Support for high contrast mode
+- **Reduced Motion**: Respects user's motion preferences
+
+This comprehensive frontend integration makes HA container management intuitive and accessible while providing powerful monitoring and control capabilities.

@@ -4,6 +4,7 @@ import axios, {
   type AxiosResponse,
 } from "axios";
 import { toastManager } from "./toast";
+import { API_BASE_URL } from "./constants";
 
 // API Response types
 export interface ApiResponse<T = unknown> {
@@ -22,10 +23,6 @@ export interface ApiError {
   type: string;
   data?: unknown;
 }
-
-// Base API configuration
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 // Create axios instance
 const createApiInstance = (): AxiosInstance => {
@@ -175,6 +172,7 @@ export const apiEndpoints = {
      create: (data: unknown) => apiClient.post("/user", data),
      update: (id: string, data: unknown) => apiClient.put(`/user/${id}`, data),
      delete: (id: string) => apiClient.delete(`/user/${id}`),
+     bulkRoles: (data: unknown) => apiClient.post("/user/bulk-roles", data),
    },
 
   // Containers
@@ -238,6 +236,7 @@ export const apiEndpoints = {
     get: (id: string) => apiClient.get(`/roles/${id}`),
     create: (data: unknown) => apiClient.post("/roles", data),
     update: (id: string, data: unknown) => apiClient.put(`/roles/${id}`, data),
+    updatePermissions: (id: string, data: unknown) => apiClient.patch(`/roles/${id}/permissions`, data),
     delete: (id: string) => apiClient.delete(`/roles/${id}`),
   },
 };

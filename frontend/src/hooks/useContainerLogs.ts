@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { apiEndpoints } from '../lib/api';
+import { API_ENDPOINTS } from '../lib/constants';
 import type { LogEntry } from '../components/entities/LogViewer';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -51,7 +52,7 @@ export const useContainerLogs = ({
 
   const socketRef = useRef<Socket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
-  const fallbackIntervalRef = useRef<number | null>(null);
+  const fallbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectCountRef = useRef(0);
   const lastLogIdRef = useRef<string | null>(null);
 
@@ -210,7 +211,7 @@ export const useContainerLogs = ({
     if (!enabled || !containerId) return;
 
     const initSocket = () => {
-      const socket = io('/api/ws/logs', {
+      const socket = io(API_ENDPOINTS.WS_LOGS, {
         transports: ['websocket', 'polling'],
         timeout: 5000,
       });

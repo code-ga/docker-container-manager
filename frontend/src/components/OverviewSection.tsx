@@ -38,10 +38,13 @@ export const OverviewSection: React.FC = () => {
 
   // Calculate statistics with proper type checking
   const totalContainers = (containers as Container[])?.length || 0;
-  const activeNodes = (nodes as Node[])?.filter((node: Node) => node.status === 'online').length || 0;
-  const totalNodes = (nodes as Node[])?.length || 0;
-  const activeClusters = (clusters as Cluster[])?.filter((cluster: Cluster) => cluster.status === 'active').length || 0;
-  const totalClusters = (clusters as Cluster[])?.length || 0;
+  const nodesData = nodes as { nodes: Node[]; pagination: { page: number; limit: number; total: number; pages: number } } | undefined;
+  const clustersData = clusters as { clusters: Cluster[]; pagination: { page: number; limit: number; total: number; pages: number } } | undefined;
+
+  const activeNodes = nodesData?.nodes?.filter((node: Node) => node.status === 'online').length || 0;
+  const totalNodes = nodesData?.nodes?.length || 0;
+  const activeClusters = clustersData?.clusters?.filter((cluster: Cluster) => cluster.status === 'active').length || 0;
+  const totalClusters = clustersData?.clusters?.length || 0;
 
   // Determine health status for nodes and clusters
   const getNodeHealthStatus = () => {

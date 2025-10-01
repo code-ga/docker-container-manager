@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from '../lib/auth';
 import { useToast } from './useToast';
+import { WS_BASE_URL, API_ENDPOINTS } from '../lib/constants';
 
 export interface WebSocketMessage {
   type: 'log' | 'stat';
@@ -24,7 +25,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 10;
   const baseReconnectDelay = 1000;
@@ -32,9 +33,6 @@ export const useWebSocket = (): UseWebSocketReturn => {
   const messageCallbackRef = useRef<((data: Record<string, unknown>) => void) | null>(null);
 
   const getWebSocketUrl = useCallback(() => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-    const wsUrl = baseUrl.replace('http', 'ws');
-
     // Check if session exists for authentication
     if (!session?.session) {
       showError('Authentication Error', 'No active session');
@@ -45,7 +43,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
     // The backend should handle session validation via cookies or other means
     const sessionId = session.session.id;
 
-    return `${wsUrl}/api/ws/logs?sessionId=${encodeURIComponent(sessionId)}`;
+    return `${WS_BASE_URL}${API_ENDPOINTS.WS_LOGS}?sessionId=${encodeURIComponent(sessionId)}`;
   }, [session, showError]);
 
   const handleMessage = useCallback((event: MessageEvent) => {
