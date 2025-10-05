@@ -4,6 +4,7 @@ import { Edit, Trash2 } from 'lucide-react';
 import { DataTable } from '../data/DataTable';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { Role } from '../../hooks/useRoles';
 
 export interface RolesTableProps {
@@ -19,6 +20,12 @@ export const RolesTable: React.FC<RolesTableProps> = ({
   onDelete,
   isLoading = false,
 }) => {
+  const { hasPermission } = usePermissions();
+
+  // Check permissions for different actions
+  const canEditRoles = hasPermission('role:update');
+  const canDeleteRoles = hasPermission('role:delete');
+
   const columns: ColumnDef<Role>[] = [
     {
       accessorKey: 'id',
@@ -61,22 +68,26 @@ export const RolesTable: React.FC<RolesTableProps> = ({
         const role = row.original;
         return (
           <div className="flex items-center space-x-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onEdit(role)}
-              leftIcon={<Edit className="w-4 h-4" />}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => onDelete(role.id)}
-              leftIcon={<Trash2 className="w-4 h-4" />}
-            >
-              Delete
-            </Button>
+            {canEditRoles && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onEdit(role)}
+                leftIcon={<Edit className="w-4 h-4" />}
+              >
+                Edit
+              </Button>
+            )}
+            {canDeleteRoles && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => onDelete(role.id)}
+                leftIcon={<Trash2 className="w-4 h-4" />}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         );
       },

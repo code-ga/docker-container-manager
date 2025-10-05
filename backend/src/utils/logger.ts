@@ -39,13 +39,18 @@ const shouldLog = (level: keyof typeof LOG_LEVELS): boolean => {
   return LOG_LEVELS[level] >= currentLogLevel;
 };
 
+// Log data interface for type safety
+export interface LogData {
+  [key: string]: string | number | boolean | null | undefined | string[] | number[] | Record<string, unknown>;
+}
+
 // Context interface for source identification
 interface LogContext {
   module?: string;
   function?: string;
   file?: string;
   line?: number;
-  [key: string]: any;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 // Get caller information automatically if available
@@ -88,7 +93,7 @@ function getCallerInfo(): LogContext {
 // Configure Pino logger
 const logger = {
   // Info level logging
-  info: (message: string, data?: Record<string, any>, context?: LogContext) => {
+  info: (message: string, data?: LogData, context?: LogContext) => {
     if (shouldLog('info')) {
       const callerInfo = getCallerInfo();
       const logContext = { ...callerInfo, ...context };
@@ -103,7 +108,7 @@ const logger = {
   },
 
   // Warning level logging
-  warn: (message: string, data?: Record<string, any>, context?: LogContext) => {
+  warn: (message: string, data?: LogData, context?: LogContext) => {
     if (shouldLog('warn')) {
       const callerInfo = getCallerInfo();
       const logContext = { ...callerInfo, ...context };
@@ -118,7 +123,7 @@ const logger = {
   },
 
   // Error level logging
-  error: (message: string, data?: Record<string, any>, context?: LogContext) => {
+  error: (message: string, data?: LogData, context?: LogContext) => {
     if (shouldLog('error')) {
       const callerInfo = getCallerInfo();
       const logContext = { ...callerInfo, ...context };
@@ -133,7 +138,7 @@ const logger = {
   },
 
   // Debug level logging
-  debug: (message: string, data?: Record<string, any>, context?: LogContext) => {
+  debug: (message: string, data?: LogData, context?: LogContext) => {
     if (shouldLog('debug')) {
       const callerInfo = getCallerInfo();
       const logContext = { ...callerInfo, ...context };
@@ -148,7 +153,7 @@ const logger = {
   },
 
   // Trace level logging (most verbose)
-  trace: (message: string, data?: Record<string, any>, context?: LogContext) => {
+  trace: (message: string, data?: LogData, context?: LogContext) => {
     if (shouldLog('trace')) {
       const callerInfo = getCallerInfo();
       const logContext = { ...callerInfo, ...context };

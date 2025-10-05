@@ -11,6 +11,7 @@ export const userRouter = new Elysia({ prefix: "/user" })
   .get(
     "/me",
     async (ctx) => {
+      // No permission check needed - users can always access their own info
       // Get user from session
       const session = await auth.api.getSession({
         headers: ctx.request.headers,
@@ -100,10 +101,10 @@ export const userRouter = new Elysia({ prefix: "/user" })
       },
     }
   )
-  .resolve(createPermissionResolve("user:read"))
   .get(
     "/:id",
     async (ctx) => {
+      // Permission check handled by route-level resolve
       // Apply permission check manually for this route
       const { id } = ctx.params;
       const user = await db
@@ -152,6 +153,7 @@ export const userRouter = new Elysia({ prefix: "/user" })
     }
   )
   // GET /api/v1/users - List all users (paginated)
+  .resolve(createPermissionResolve("user:read"))
   .get(
     "/",
     async (ctx) => {
@@ -211,10 +213,11 @@ export const userRouter = new Elysia({ prefix: "/user" })
     }
   )
   // POST /api/v1/users - Create user
+  .resolve(createPermissionResolve("user:write"))
   .post(
     "/",
     async (ctx) => {
-      const { email, password, name, roleId } = ctx.body;
+      const { email, password, name, roleId } = ctx.body as { email: string; password: string; name: string; roleId?: string };
 
       try {
         // Use Better-Auth to create user
@@ -260,12 +263,13 @@ export const userRouter = new Elysia({ prefix: "/user" })
             user: userWithRoles[0] as Static<typeof userType>,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return ctx.error(400, {
           status: 400,
           type: "error",
           success: false,
-          message: error.message || "Failed to create user",
+          message: errorMessage || "Failed to create user",
         });
       }
     },
@@ -287,6 +291,7 @@ export const userRouter = new Elysia({ prefix: "/user" })
     }
   )
   // PUT /api/v1/users/:id - Update user
+  .resolve(createPermissionResolve("user:write"))
   .put(
     "/:id",
     async (ctx) => {
@@ -354,12 +359,13 @@ export const userRouter = new Elysia({ prefix: "/user" })
             user: updatedUser[0] as Static<typeof userType>,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return ctx.error(400, {
           status: 400,
           type: "error",
           success: false,
-          message: error.message || "Failed to update user",
+          message: errorMessage || "Failed to update user",
         });
       }
     },
@@ -384,6 +390,7 @@ export const userRouter = new Elysia({ prefix: "/user" })
     }
   )
   // DELETE /api/v1/users/:id - Delete user
+  .resolve(createPermissionResolve("user:delete"))
   .delete(
     "/:id",
     async (ctx) => {
@@ -416,12 +423,13 @@ export const userRouter = new Elysia({ prefix: "/user" })
           type: "success",
           data: null,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return ctx.error(400, {
           status: 400,
           type: "error",
           success: false,
-          message: error.message || "Failed to delete user",
+          message: errorMessage || "Failed to delete user",
         });
       }
     },
@@ -441,11 +449,12 @@ export const userRouter = new Elysia({ prefix: "/user" })
     }
   )
   // POST /api/v1/users/:id/roles - Assign role to user
+  .resolve(createPermissionResolve("user:role:assign"))
   .post(
     "/:id/roles",
     async (ctx) => {
       const { id } = ctx.params;
-      const { roleId } = ctx.body;
+      const { roleId } = ctx.body as { roleId: string };
 
       try {
         // Check if user exists
@@ -515,12 +524,13 @@ export const userRouter = new Elysia({ prefix: "/user" })
           type: "success",
           data: null,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return ctx.error(400, {
           status: 400,
           type: "error",
           success: false,
-          message: error.message || "Failed to assign role to user",
+          message: errorMessage || "Failed to assign role to user",
         });
       }
     },

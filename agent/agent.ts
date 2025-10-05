@@ -31,6 +31,22 @@ interface Message {
   message?: string;
 }
 
+// Command execution result interface
+interface CommandResultData {
+  containerId?: string;
+  message?: string;
+  logs?: string[];
+  output?: string;
+}
+
+// Error interface for better error handling
+interface DockerError extends Error {
+  statusCode?: string | number;
+  json?: {
+    message: string;
+  };
+}
+
 interface HeartbeatMessage {
   type: 'heartbeat';
   nodeId: string;
@@ -69,7 +85,7 @@ interface CommandResult {
   type: 'command_result' | 'stdin_result';
   commandId: string;
   status: 'success' | 'error';
-  result?: any;
+  result?: CommandResultData;
   error?: string;
 }
 
@@ -91,7 +107,11 @@ interface DockerResult {
 }
 
 // Logging utility
-function log(level: string, message: string, data: Record<string, any> = {}): void {
+interface LogData {
+  [key: string]: string | number | boolean | null | undefined | string[] | number[] | Record<string, unknown>;
+}
+
+function log(level: string, message: string, data: LogData = {}): void {
   if (LOG_LEVEL === 'debug' || (LOG_LEVEL === 'info' && level !== 'debug')) {
     console.log(`[${new Date().toISOString()}] [${level.toUpperCase()}] ${message}`, data);
   }
@@ -102,7 +122,7 @@ class NodeAgent {
   private reconnectAttempts: number = 0;
   private readonly maxReconnectAttempts: number = 10;
   private readonly reconnectDelay: number = 5000;
-  private readonly pendingCommands: Map<string, any> = new Map();
+  private readonly pendingCommands: Map<string, Message> = new Map();
   private readonly docker: Docker;
 
   constructor() {
@@ -202,8 +222,9 @@ class NodeAgent {
         const message: Message = JSON.parse(rawData);
         log('debug', 'Parsed message', { type: message.type });
         await this.handleMessage(message);
-      } catch (error: any) {
-        log('error', 'Failed to parse message', { error: error.message, rawData: data.toString() });
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        log('error', 'Failed to parse message', { error: errorMessage, rawData: data.toString() });
       }
     });
 
@@ -267,7 +288,7 @@ class NodeAgent {
     try {
       log('info', `Executing command: ${command.action}`, { commandId, containerId: command.containerId });
 
-      let result: any;
+      let result: CommandResultData;
 
       switch (command.action) {
         case 'create':
@@ -317,11 +338,12 @@ class NodeAgent {
         result
       });
 
-    } catch (error: any) {
-      const statusCode = error.statusCode || 'unknown';
-      const dockerError = error.json ? error.json.message : 'No JSON details';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = (error as DockerError)?.statusCode || 'unknown';
+      const dockerError = (error as DockerError)?.json?.message || 'No JSON details';
 
-      log('error', `Docker operation failed: ${error.message}`, {
+      log('error', `Docker operation failed: ${errorMessage}`, {
         action: command.action,
         containerId: command.containerId,
         statusCode,
@@ -336,7 +358,7 @@ class NodeAgent {
         type: resultType,
         commandId,
         status: 'error',
-        error: `${error.message} (Status: ${statusCode})`
+        error: `${errorMessage} (Status: ${statusCode})`
       });
     }
   }
@@ -360,12 +382,26 @@ class NodeAgent {
       }
 
       // Build container configuration
-      const containerConfig: any = {
+      interface DockerContainerConfig {
+        Image: string;
+        name: string;
+        Tty: boolean;
+        HostConfig: Record<string, unknown>;
+        Env?: string[];
+        ExposedPorts?: Record<string, Record<string, never>>;
+        [key: string]: unknown;
+      }
+
+      const containerConfig: DockerContainerConfig = {
         Image: eggConfig.image,
         name: command.containerId,
         Tty: true,
-        HostConfig: {}
+        HostConfig: {},
+        ExposedPorts: {},
       };
+
+      // Type assertion for HostConfig properties that we know will be set
+      const hostConfig = containerConfig.HostConfig as Record<string, unknown>;
 
       // Resources
       if (resources?.cpu) {
@@ -380,13 +416,16 @@ class NodeAgent {
 
       // Ports
       if (eggConfig.ports) {
-        containerConfig.HostConfig.PortBindings = {};
-        containerConfig.ExposedPorts = {};
+        const portBindings: Record<string, Array<{ HostPort: string }>> = {};
+        const exposedPorts = containerConfig.ExposedPorts!;
+
         eggConfig.ports.forEach(port => {
           const portKey = `${port.container}/tcp`;
-          containerConfig.ExposedPorts[portKey] = {};
-          containerConfig.HostConfig.PortBindings[portKey] = [{ HostPort: port.host.toString() }];
+          exposedPorts[portKey] = {};
+          portBindings[portKey] = [{ HostPort: port.host.toString() }];
         });
+
+        hostConfig.PortBindings = portBindings;
       }
 
       // Environment variables
@@ -403,11 +442,12 @@ class NodeAgent {
 
       const container = await this.docker.createContainer(containerConfig);
       return { containerId: container.id };
-    } catch (error: any) {
-      const statusCode = error.statusCode || 'unknown';
-      const dockerError = error.json ? error.json.message : 'No JSON details';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = (error as DockerError)?.statusCode || 'unknown';
+      const dockerError = (error as DockerError)?.json?.message || 'No JSON details';
 
-      log('error', `Failed to create container: ${error.message}`, {
+      log('error', `Failed to create container: ${errorMessage}`, {
         containerId: command.containerId,
         statusCode,
         dockerError
@@ -426,11 +466,12 @@ class NodeAgent {
       const container = this.docker.getContainer(command.containerId);
       await container.start();
       return { message: 'Container started' };
-    } catch (error: any) {
-      const statusCode = error.statusCode || 'unknown';
-      const dockerError = error.json ? error.json.message : 'No JSON details';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = (error as DockerError)?.statusCode || 'unknown';
+      const dockerError = (error as DockerError)?.json?.message || 'No JSON details';
 
-      log('error', `Failed to start container: ${error.message}`, {
+      log('error', `Failed to start container: ${errorMessage}`, {
         containerId: command.containerId,
         statusCode,
         dockerError
@@ -449,11 +490,12 @@ class NodeAgent {
       const container = this.docker.getContainer(command.containerId);
       await container.stop();
       return { message: 'Container stopped' };
-    } catch (error: any) {
-      const statusCode = error.statusCode || 'unknown';
-      const dockerError = error.json ? error.json.message : 'No JSON details';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = (error as DockerError)?.statusCode || 'unknown';
+      const dockerError = (error as DockerError)?.json?.message || 'No JSON details';
 
-      log('error', `Failed to stop container: ${error.message}`, {
+      log('error', `Failed to stop container: ${errorMessage}`, {
         containerId: command.containerId,
         statusCode,
         dockerError
@@ -472,11 +514,12 @@ class NodeAgent {
       const container = this.docker.getContainer(command.containerId);
       await container.restart();
       return { message: 'Container restarted' };
-    } catch (error: any) {
-      const statusCode = error.statusCode || 'unknown';
-      const dockerError = error.json ? error.json.message : 'No JSON details';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = (error as DockerError)?.statusCode || 'unknown';
+      const dockerError = (error as DockerError)?.json?.message || 'No JSON details';
 
-      log('error', `Failed to restart container: ${error.message}`, {
+      log('error', `Failed to restart container: ${errorMessage}`, {
         containerId: command.containerId,
         statusCode,
         dockerError
@@ -495,11 +538,12 @@ class NodeAgent {
       const container = this.docker.getContainer(command.containerId);
       await container.remove({ force: true });
       return { message: 'Container deleted' };
-    } catch (error: any) {
-      const statusCode = error.statusCode || 'unknown';
-      const dockerError = error.json ? error.json.message : 'No JSON details';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = (error as DockerError)?.statusCode || 'unknown';
+      const dockerError = (error as DockerError)?.json?.message || 'No JSON details';
 
-      log('error', `Failed to delete container: ${error.message}`, {
+      log('error', `Failed to delete container: ${errorMessage}`, {
         containerId: command.containerId,
         statusCode,
         dockerError
@@ -527,11 +571,12 @@ class NodeAgent {
       // Convert buffer to string and split into lines
       const logsString = logs.toString();
       return { logs: logsString.split('\n').filter(line => line.trim()) };
-    } catch (error: any) {
-      const statusCode = error.statusCode || 'unknown';
-      const dockerError = error.json ? error.json.message : 'No JSON details';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = (error as DockerError)?.statusCode || 'unknown';
+      const dockerError = (error as DockerError)?.json?.message || 'No JSON details';
 
-      log('error', `Failed to get container logs: ${error.message}`, {
+      log('error', `Failed to get container logs: ${errorMessage}`, {
         containerId,
         lines,
         statusCode,
@@ -595,11 +640,12 @@ class NodeAgent {
       log('debug', 'Stdin stream ended', { containerId, outputLength: collectedOutput.length });
 
       return { output: collectedOutput };
-    } catch (error: any) {
-      const statusCode = error.statusCode || 'unknown';
-      const dockerError = error.json ? error.json.message : 'No JSON details';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = (error as DockerError)?.statusCode || 'unknown';
+      const dockerError = (error as DockerError)?.json?.message || 'No JSON details';
 
-      log('error', `Failed to send stdin to container: ${error.message}`, {
+      log('error', `Failed to send stdin to container: ${errorMessage}`, {
         containerId,
         inputLength: input?.length || 0,
         statusCode,

@@ -7,6 +7,7 @@ import { FormBuilder } from '../data/FormBuilder';
 import type { FormField } from '../data/FormBuilder';
 import { LogViewer } from './LogViewer';
 import { useContainerLogs } from '../../hooks/useContainerLogs';
+import { usePermissions } from '../../hooks/usePermissions';
 import { cn } from '../../lib/utils';
 
 export interface Container {
@@ -33,6 +34,7 @@ const ContainerCard = ({ container, onAction, className, showLogs = true }: Cont
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [currentAction, setCurrentAction] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const { hasPermission } = usePermissions();
 
   // Use the container logs hook for real-time logs
   const {
@@ -53,6 +55,12 @@ const ContainerCard = ({ container, onAction, className, showLogs = true }: Cont
       // Subscribe logic would be here if needed
     }
   }, [showLogs, container.status, isConnected]);
+
+  // Check permissions for different actions
+  const canStart = hasPermission('container:manage') || hasPermission('container:own:start');
+  const canStop = hasPermission('container:manage') || hasPermission('container:own:stop');
+  const canRestart = hasPermission('container:manage') || hasPermission('container:own:restart');
+  const canDelete = hasPermission('container:manage') || hasPermission('container:own:delete');
 
   const handleAction = async (data: Record<string, unknown>) => {
     if (onAction) {
@@ -156,7 +164,7 @@ const ContainerCard = ({ container, onAction, className, showLogs = true }: Cont
           </div>
 
           <div className="flex gap-2">
-            {container.status === 'stopped' && (
+            {container.status === 'stopped' && canStart && (
               <Button
                 variant="primary"
                 size="sm"
@@ -167,7 +175,7 @@ const ContainerCard = ({ container, onAction, className, showLogs = true }: Cont
                 Start
               </Button>
             )}
-            {container.status === 'running' && (
+            {container.status === 'running' && canStop && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -178,27 +186,31 @@ const ContainerCard = ({ container, onAction, className, showLogs = true }: Cont
                 Stop
               </Button>
             )}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => handleQuickAction('restart')}
-              leftIcon={<RotateCcw className="w-4 h-4" />}
-              isLoading={isLoading}
-            >
-              Restart
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                setCurrentAction('delete');
-                setIsActionModalOpen(true);
-              }}
-              leftIcon={<Trash2 className="w-4 h-4" />}
-              isLoading={isLoading}
-            >
-              Delete
-            </Button>
+            {canRestart && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleQuickAction('restart')}
+                leftIcon={<RotateCcw className="w-4 h-4" />}
+                isLoading={isLoading}
+              >
+                Restart
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  setCurrentAction('delete');
+                  setIsActionModalOpen(true);
+                }}
+                leftIcon={<Trash2 className="w-4 h-4" />}
+                isLoading={isLoading}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         </div>
 

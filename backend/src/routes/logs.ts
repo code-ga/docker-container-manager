@@ -6,6 +6,7 @@ import { table } from "../database/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { checkContainerAssignment } from "../utils";
 import { auth } from "../libs/auth/auth";
+import { createPermissionResolve } from "../middlewares/permissions-guard";
 
 // Log query parameters type
 const logsQueryType = t.Object({
@@ -59,6 +60,7 @@ export const logsRouter = new Elysia()
     },
   })
   // REST endpoint for fetching historical logs
+  .resolve(createPermissionResolve("logs:read"))
   .get(
     "/",
     async (ctx) => {

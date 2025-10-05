@@ -4,6 +4,7 @@ import { Edit, Trash2 } from 'lucide-react';
 import { DataTable } from '../data/DataTable';
 import { Button } from '../ui/Button';
 import { RoleBadge } from './RoleBadge';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { User } from '../../hooks/useUsers';
 
 export interface UsersTableProps {
@@ -23,6 +24,12 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   selectedUsers = [],
   onSelectionChange,
 }) => {
+  const { hasPermission } = usePermissions();
+
+  // Check permissions for different actions
+  const canEditUsers = hasPermission('user:update');
+  const canDeleteUsers = hasPermission('user:delete');
+
   const columns: ColumnDef<User>[] = [
     ...(onSelectionChange ? [{
       id: 'select',
@@ -112,22 +119,26 @@ export const UsersTable: React.FC<UsersTableProps> = ({
         const user = row.original;
         return (
           <div className="flex items-center space-x-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onEdit(user)}
-              leftIcon={<Edit className="w-4 h-4" />}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => onDelete(user.id)}
-              leftIcon={<Trash2 className="w-4 h-4" />}
-            >
-              Delete
-            </Button>
+            {canEditUsers && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onEdit(user)}
+                leftIcon={<Edit className="w-4 h-4" />}
+              >
+                Edit
+              </Button>
+            )}
+            {canDeleteUsers && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => onDelete(user.id)}
+                leftIcon={<Trash2 className="w-4 h-4" />}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         );
       },

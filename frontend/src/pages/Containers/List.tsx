@@ -23,6 +23,7 @@ import { NodeStatus } from '../../components/entities/NodeStatus';
 
 import { useContainers, useContainerActions } from '../../hooks/useContainers';
 import { useNodes } from '../../hooks/useEntities';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { Container } from '../../hooks/useContainers';
 import type { Node } from '../../hooks/useEntities';
 
@@ -144,9 +145,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 const ActionsDropdown: React.FC<{ container: Container }> = ({ container }) => {
   const containerActions = useContainerActions();
   const [isOpen, setIsOpen] = useState(false);
-
-  // Stub for permissions - always true as per requirements
-  const hasPermission = () => true;
+  const { hasPermission } = usePermissions();
 
   const handleAction = async (action: 'start' | 'stop' | 'restart') => {
     try {
@@ -169,6 +168,12 @@ const ActionsDropdown: React.FC<{ container: Container }> = ({ container }) => {
       }
     }
   };
+
+  // Check permissions for different actions
+  const canStart = hasPermission('container:manage') || hasPermission('container:own:start');
+  const canStop = hasPermission('container:manage') || hasPermission('container:own:stop');
+  const canRestart = hasPermission('container:manage') || hasPermission('container:own:restart');
+  const canDelete = hasPermission('container:manage') || hasPermission('container:own:delete');
 
   return (
     <div className="relative">
@@ -193,7 +198,7 @@ const ActionsDropdown: React.FC<{ container: Container }> = ({ container }) => {
             className="absolute right-0 z-20 w-48 mt-1 bg-gray-800 border border-gray-700 rounded-md shadow-lg"
           >
             <div className="py-1">
-              {hasPermission() && (
+              {canStart && (
                 <button
                   onClick={() => handleAction('start')}
                   className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
@@ -203,7 +208,7 @@ const ActionsDropdown: React.FC<{ container: Container }> = ({ container }) => {
                 </button>
               )}
 
-              {hasPermission() && (
+              {canStop && (
                 <button
                   onClick={() => handleAction('stop')}
                   className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
@@ -213,7 +218,7 @@ const ActionsDropdown: React.FC<{ container: Container }> = ({ container }) => {
                 </button>
               )}
 
-              {hasPermission() && (
+              {canRestart && (
                 <button
                   onClick={() => handleAction('restart')}
                   className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
@@ -231,7 +236,7 @@ const ActionsDropdown: React.FC<{ container: Container }> = ({ container }) => {
                 Edit
               </Link>
 
-              {hasPermission() && (
+              {canDelete && (
                 <button
                   onClick={handleDelete}
                   className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300"

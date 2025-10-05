@@ -10,6 +10,31 @@ import {
   integer
 } from 'drizzle-orm/pg-core';
 
+// Egg configuration interface for type safety
+export interface EggConfiguration {
+  startupCommand?: string;
+  environment?: Record<string, string>;
+  ports?: Array<{
+    container: number;
+    host?: number;
+    protocol?: 'tcp' | 'udp';
+  }>;
+  volumes?: Array<{
+    container: string;
+    host?: string;
+    readonly?: boolean;
+  }>;
+  resources?: {
+    cpu?: number;
+    memory?: number;
+    disk?: number;
+  };
+  user?: string;
+  workingDirectory?: string;
+  stopCommand?: string;
+  restartPolicy?: 'always' | 'on-failure' | 'unless-stopped' | 'no';
+}
+
 
 
 export const user = pgTable("user", {
@@ -122,7 +147,7 @@ export const eggs = pgTable("eggs", {
   image: varchar('image', { length: 500 }).notNull(), // Docker image
   startupCommand: text('startup_command'), // Startup command/script
   envVars: json('env_vars').$type<{[key: string]: string}>().default({}), // Environment variables as JSON
-  config: json('config').$type<Record<string, any>>().default({}), // Configuration as JSON
+  config: json('config').$type<EggConfiguration>().default({}), // Configuration as JSON
   description: text('description'),
   createdAt: timestamp('created_at').notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at').notNull().default(sql`now()`)

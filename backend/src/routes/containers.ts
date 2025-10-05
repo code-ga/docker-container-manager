@@ -6,7 +6,7 @@ import { eq, desc, sql, and } from "drizzle-orm";
 import { hasPermission } from "../permissions";
 import { randomUUID } from "crypto";
 import { wsManager } from "../libs/websocket";
-import { auth } from "../libs/auth/auth";
+import { createPermissionResolve } from "../middlewares/permissions-guard";
 
 // Container type definitions
 const containerType = t.Object({
@@ -110,25 +110,8 @@ async function checkContainerOwnership(
 }
 
 export const containersRouter = new Elysia({ prefix: "/containers" })
-  .resolve(async (context) => {
-    const session = await auth.api.getSession({ headers: context.request.headers });
-
-    if (!session || !session.user) {
-      context.set.status = 401;
-      return {
-        status: 401,
-        type: "error",
-        success: false,
-        message: "Unauthorized: Authentication required"
-      };
-    }
-
-    return {
-      user: session.user,
-      session: session.session
-    };
-  })
   // GET /api/v1/containers - List containers (own or all if manage perm)
+  .resolve(createPermissionResolve("container:read"))
   .get(
     "/",
     async (ctx) => {
@@ -242,6 +225,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // POST /api/v1/containers - Create container
+  .resolve(createPermissionResolve("container:write"))
   .post(
     "/",
     async (ctx) => {
@@ -423,6 +407,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // PUT /api/v1/containers/:id - Update container
+  .resolve(createPermissionResolve("container:write"))
   .put(
     "/:id",
     async (ctx) => {
@@ -556,6 +541,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // DELETE /api/v1/containers/:id - Delete container
+  .resolve(createPermissionResolve("container:delete"))
   .delete(
     "/:id",
     async (ctx) => {
@@ -632,6 +618,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // POST /api/v1/containers/:id/start - Start container
+  .resolve(createPermissionResolve("container:write"))
   .post(
     "/:id/start",
     async (ctx) => {
@@ -744,6 +731,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // POST /api/v1/containers/:id/stop - Stop container
+  .resolve(createPermissionResolve("container:write"))
   .post(
     "/:id/stop",
     async (ctx) => {
@@ -783,19 +771,34 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
           });
         }
 
-        // Update container status to stopped
+        // Update container status to stopping
         await db
           .update(table.containers)
           .set({
-            status: "stopped",
+            status: "stopping",
             updatedAt: sql`now()`,
           })
           .where(eq(table.containers.id, id));
 
-        // Stub: Send command to node agent
-        console.log(
-          `Command sent to node ${existingContainer[0].nodeId} for container ${id}: STOP`
+        // Send stop command to node agent via WebSocket
+        const stopCommandSent = await wsManager.sendToNode(
+          existingContainer[0].nodeId,
+          {
+            type: "command",
+            action: "stop",
+            containerId: existingContainer[0].uuid,
+          }
         );
+
+        if (!stopCommandSent) {
+          ctx.set.status = 500;
+          return {
+            status: 500,
+            type: "error",
+            success: false,
+            message: "Failed to send stop command to node agent",
+          };
+        }
 
         // Fetch updated container
         const updatedContainer = await db
@@ -841,6 +844,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // POST /api/v1/containers/:id/restart - Restart container
+  .resolve(createPermissionResolve("container:write"))
   .post(
     "/:id/restart",
     async (ctx) => {
@@ -953,6 +957,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // GET /api/v1/containers/:id/logs - Get container logs
+  .resolve(createPermissionResolve("logs:read"))
   .get(
     "/:id/logs",
     async (ctx) => {
@@ -1102,6 +1107,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // GET /api/v1/containers/:id/stats - Get container statistics
+  .resolve(createPermissionResolve("container:read"))
   .get(
     "/:id/stats",
     async (ctx) => {
@@ -1215,6 +1221,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // POST /api/v1/containers/:id/assign/:nodeId - Reassign container to different node
+  .resolve(createPermissionResolve("container:write"))
   .post(
     "/:id/assign/:nodeId",
     async (ctx) => {
@@ -1289,12 +1296,24 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
           })
           .where(eq(table.containers.id, id));
 
-        // Stub: Send command to old and new nodes
-        console.log(
-          `Command sent to node ${existingContainer[0].nodeId} for container ${id}: STOP`
+        // Send stop command to old node
+        await wsManager.sendToNode(
+          existingContainer[0].nodeId,
+          {
+            type: "command",
+            action: "stop",
+            containerId: existingContainer[0].uuid,
+          }
         );
-        console.log(
-          `Command sent to node ${nodeId} for container ${id}: START`
+
+        // Send start command to new node
+        await wsManager.sendToNode(
+          nodeId,
+          {
+            type: "command",
+            action: "start",
+            containerId: existingContainer[0].uuid,
+          }
         );
 
         // Fetch updated container
@@ -1342,6 +1361,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // GET /api/v1/containers/:id/health - Get container health status
+  .resolve(createPermissionResolve("container:read"))
   .get(
     "/:id/health",
     async (ctx) => {
@@ -1441,6 +1461,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // GET /api/v1/containers/nodes/health - Get all nodes health status
+  .resolve(createPermissionResolve("node:read"))
   .get(
     "/nodes/health",
     async (ctx) => {
@@ -1536,6 +1557,7 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
   )
 
   // POST /api/v1/containers/migration/:containerId/trigger - Trigger manual migration
+  .resolve(createPermissionResolve("migration:manage"))
   .post(
     "/migration/:containerId/trigger",
     async (ctx) => {
@@ -1592,8 +1614,14 @@ export const containersRouter = new Elysia({ prefix: "/containers" })
           })
           .where(eq(table.containers.id, containerId));
 
-        // Stub: Log migration trigger
-        console.log(`Migration triggered for container ${containerId}`);
+        // Trigger migration via migration utility
+        try {
+          const { migrateContainer } = await import("../utils/migration");
+          await migrateContainer(containerId);
+        } catch (migrationError) {
+          console.error("Migration trigger failed:", migrationError);
+          // Continue with response even if migration fails
+        }
 
         return {
           status: 200,

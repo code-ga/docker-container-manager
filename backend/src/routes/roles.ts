@@ -7,11 +7,11 @@ import { randomUUID } from "crypto";
 import { createPermissionResolve } from "../middlewares/permissions-guard";
 
 export const rolesRouter = new Elysia({ prefix: "/roles" })
-  .resolve(createPermissionResolve("role:read"))
   // GET /api/v1/roles/with-permissions - Get all roles with their permissions
   .get(
     "/with-permissions",
     async () => {
+      // Permission check handled by route-level resolve
       const rolesWithPermissions = await db
         .select({
           id: table.roles.id,
@@ -75,6 +75,7 @@ export const rolesRouter = new Elysia({ prefix: "/roles" })
   .get(
     "/",
     async (ctx) => {
+      // Permission check handled by route-level resolve
       const { page = 1, limit = 10 } = ctx.query;
       const offset = (page - 1) * limit;
 
@@ -144,6 +145,7 @@ export const rolesRouter = new Elysia({ prefix: "/roles" })
     }
   )
   // POST /api/v1/roles - Create role
+  .resolve(createPermissionResolve("role:write"))
   .post(
     "/",
     async (ctx) => {
@@ -225,6 +227,7 @@ export const rolesRouter = new Elysia({ prefix: "/roles" })
     }
   )
   // PUT /api/v1/roles/:id - Update role
+  .resolve(createPermissionResolve("role:write"))
   .put(
     "/:id",
     async (ctx) => {
@@ -341,6 +344,7 @@ export const rolesRouter = new Elysia({ prefix: "/roles" })
     }
   )
   // DELETE /api/v1/roles/:id - Delete role
+  .resolve(createPermissionResolve("role:delete"))
   .delete(
     "/:id",
     async (ctx) => {

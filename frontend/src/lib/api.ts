@@ -49,10 +49,16 @@ const createApiInstance = (): AxiosInstance => {
             // Token expired or invalid, redirect to login
             window.location.href = "/login";
             break;
-          case 403:
+          case 403: {
             // Access denied - insufficient permissions
-            toastManager.showError("Access Denied", "Insufficient permissions");
+            const permissionMatch = error.response?.data?.message?.match(/required permissions?: (.+)/i);
+            const requiredPermissions = permissionMatch ? permissionMatch[1] : 'appropriate permissions';
+            toastManager.showError(
+              "Access Denied",
+              `You need ${requiredPermissions} to perform this action. Please contact your administrator if you believe this is an error.`
+            );
             break;
+          }
           case 400:
             // Bad request - client error
             toastManager.showError("Bad Request", "Please check your input");
